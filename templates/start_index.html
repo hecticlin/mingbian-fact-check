@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>明辨 · 智信未来 · 虚假新闻智能检测系统</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome 6 (最新版) -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+
+  <!-- Google Font: Inter 更现代 -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+
+  <!-- 保留原有按钮样式（兼容） -->
+  <link rel="stylesheet" href="http://www.bootcss.com/p/buttons/css/buttons.css">
+  <link rel="stylesheet" id="patternfly-adjusted-css" href="Css/app.css" type="text/css" media="all">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#2563eb",      // 更现代的蓝色
+            secondary: "#7c3aed",     // 紫色点缀
+            accent: "#06b6d4",        // 青色
+            neutral: "#f8fafc",       // 极浅灰
+            dark: "#0f172a",           // 深色文字
+          },
+          fontFamily: {
+            sans: ["Inter", "system-ui", "sans-serif"],
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
+            }
+          }
+        },
+      },
+    };
+  </script>
+
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .bg-gradient-overlay {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 20, 40, 0.85) 0%,
+          rgba(0, 50, 80, 0.7) 50%,
+          rgba(0, 30, 60, 0.85) 100%
+        );
+      }
+      .text-shadow {
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+      .text-shadow-sm {
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      }
+      .hover-scale {
+        @apply transition-all duration-300 hover:scale-105 hover:shadow-xl;
+      }
+      .card-shadow {
+        box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1),
+                    0 5px 15px -5px rgba(0, 0, 0, 0.05);
+      }
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+    }
+
+    /* 自定义导航栏 - 磨砂玻璃效果 */
+    .navbar-modern {
+      background: rgba(26, 73, 129, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    /* 确保任何滚动位置导航栏样式一致 */
+    nav {
+      background: rgba(26, 73, 129, 0.85) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+    }
+
+    /* 登录按钮样式 */
+    .nav-login-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .nav-login-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    /* 炫彩画布 - 完全保留原有样式 */
+    #canvas {
+      position: fixed;
+      z-index: 1;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 内容层 - 在画布上方 */
+    .content-layer {
+      position: relative;
+      z-index: 10;
+    }
+
+    /* 英雄区域 - 现代设计 */
+    .hero-section {
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 特点卡片 - 现代简约 */
+    .feature-card {
+      background: white;
+      border-radius: 2rem;
+      padding: 2rem;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid rgba(0, 0, 0, 0.02);
+      box-shadow: 0 25px 40px -20px rgba(0, 0, 0, 0.15);
+    }
+    .feature-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 35px 50px -20px rgba(37, 99, 235, 0.3);
+      border-color: rgba(37, 99, 235, 0.1);
+    }
+
+    /* 统计数字动画 */
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* 确保所有交互元素都在画布上层 */
+    nav, .hero-section, #features, footer, a, button, .btn, [onclick] {
+      position: relative;
+      z-index: 20;
+      pointer-events: auto;
+    }
+
+    /* 移动端菜单 */
+    #mobile-menu {
+      background: rgba(26, 73, 129, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* 底部版权区域 */
+    .footer-modern {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+  </style>
+</head>
+
+<body class="font-sans antialiased bg-dark text-white min-h-screen"
+      ondragstart="window.event.returnValue=false"
+      oncontextmenu="window.event.returnValue=false"
+      onselectstart="event.returnValue=false">
+
+  <!-- 炫彩画布 - 完全保留原有功能 -->
+  <canvas id="canvas"></canvas>
+
+  <!-- 内容层 -->
+  <div class="content-layer">
+    <!-- 现代导航栏 -->
+    <nav class="fixed w-full z-50 navbar-modern">
+      <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex justify-between items-center h-20">
+          <!-- Logo区域 -->
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-shield-halded text-white text-xl"></i>
+            </div>
+            <span class="text-xl font-bold text-white tracking-tight">明辨<span class="text-blue-300 ml-1 text-sm font-light"> · 智能鉴真</span></span>
+          </div>
+
+          <!-- 桌面端菜单 - 居中 (可选) 这里为了简洁只放登录按钮 -->
+          <div class="flex items-center space-x-6">
+            <a href="/login" class="nav-login-btn px-6 py-2.5 rounded-full text-white font-medium text-sm tracking-wide transition-all flex items-center gap-2">
+              <i class="fas fa-arrow-right-to-bracket text-sm"></i>
+              登录
+            </a>
+            <button class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors" id="menu-toggle">
+              <i class="fa fa-bars text-white text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 移动端菜单 -->
+      <div id="mobile-menu" class="md:hidden hidden absolute top-full left-0 w-full py-4 px-6">
+        <div class="flex flex-col space-y-4">
+          <a href="#features" class="text-white/90 hover:text-white py-2 transition-colors">产品特点</a>
+          <a href="#about" class="text-white/90 hover:text-white py-2 transition-colors">关于我们</a>
+          <a href="/login" class="text-white/90 hover:text-white py-2 transition-colors">登录</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 英雄区域 - 现代设计 -->
+    <div class="hero-section min-h-screen flex items-center justify-center relative overflow-hidden">
+      <!-- 背景装饰 -->
+      <div class="absolute inset-0 bg-gradient-overlay"></div>
+
+      <!-- 内容 -->
+      <div class="relative z-10 max-w-5xl mx-auto px-6 lg:px-8 py-24 text-center">
+        <!-- 徽章 -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm mb-8">
+          <i class="fas fa-circle-check text-blue-400"></i>
+          <span>AI驱动的虚假新闻检测系统</span>
+        </div>
+
+        <!-- 主标题 -->
+        <h1 class="text-5xl lg:text-7xl font-bold mb-6 text-shadow leading-tight">
+          不再轻信谣言<br />
+          <span class="bg-gradient-to-r from-blue-300 via-blue-200 to-purple-200 bg-clip-text text-transparent">
+            从这里开始
+          </span>
+        </h1>
+
+        <!-- 副标题 -->
+        <p class="text-xl lg:text-2xl text-white/80 mb-10 max-w-3xl mx-auto leading-relaxed">
+          专业的虚假新闻检测平台，结合AI智能分析与专家审核，为您提供全方位的新闻真实性检测服务。
+        </p>
+
+        <!-- CTA 按钮组 -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a href="#features" class="group px-8 py-4 bg-white text-dark rounded-full font-semibold text-lg shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-3">
+            <span>探索产品</span>
+            <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+          </a>
+          <a href="/login" class="px-8 py-4 bg-blue-600/20 backdrop-blur-sm border border-white/30 text-white rounded-full font-semibold text-lg hover:bg-blue-600/30 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-3">
+            <i class="fas fa-flask"></i>
+            <span>立即体验</span>
+          </a>
+        </div>
+
+        <!-- 统计数据 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto">
+          <div class="text-center">
+            <div class="stat-number">10万+</div>
+            <div class="text-white/70 mt-2">新闻检测</div>
+          </div>
+          <div class="text-center">
+            <div class="stat-number">99.5%</div>
+            <div class="text-white/70 mt-2">准确率</div>
+          </div>
+          <div class="text-center">
+            <div class="stat-number">24/7</div>
+            <div class="text-white/70 mt-2">实时监测</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 装饰性浮动元素 (纯CSS) -->
+      <div class="absolute bottom-10 left-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+      <div class="absolute top-20 right-10 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow animation-delay-2000"></div>
+    </div>
+
+    <!-- 特点区域 - 重新设计卡片 -->
+    <section id="features" class="py-28 bg-neutral">
+      <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <!-- 标题区 -->
+        <div class="text-center mb-16">
+          <span class="text-blue-600 font-semibold text-sm tracking-wider uppercase">为什么选择我们</span>
+          <h2 class="text-4xl lg:text-5xl font-bold text-dark mt-4 mb-6">
+            让真相<span class="text-blue-600">触手可及</span>
+          </h2>
+          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            我们提供专业、高效、准确的虚假新闻检测服务，让谣言无处遁形
+          </p>
+        </div>
+
+        <!-- 卡片网格 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
+          <!-- 卡片 1 - 专家团队 -->
+          <div class="feature-card group">
+            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 transition-transform">
+              <i class="fa fa-users text-white text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-dark mb-4">专家审核团队</h3>
+            <p class="text-gray-600 leading-relaxed mb-6">
+              由资深新闻工作者、行业专家组成的审核团队，确保每一条新闻都经过专业研判。
+            </p>
+            <div class="flex items-center text-blue-600 font-medium">
+              <span>了解更多</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+            </div>
+          </div>
+
+          <!-- 卡片 2 - AI智能检测 -->
+          <div class="feature-card group">
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 transition-transform">
+              <i class="fa fa-brain text-white text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-dark mb-4">AI智能检测</h3>
+            <p class="text-gray-600 leading-relaxed mb-6">
+              基于深度学习模型的智能检测系统，快速识别虚假新闻特征，准确率高达99.5%。
+            </p>
+            <div class="flex items-center text-purple-600 font-medium">
+              <span>了解更多</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+            </div>
+          </div>
+
+          <!-- 卡片 3 - 实时互动 -->
+          <div class="feature-card group">
+            <div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 transition-transform">
+              <i class="fa fa-message text-white text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-dark mb-4">实时互动社区</h3>
+            <p class="text-gray-600 leading-relaxed mb-6">
+              与专家和其他用户实时交流，共同探讨新闻真伪，构建清朗网络空间。
+            </p>
+            <div class="flex items-center text-cyan-600 font-medium">
+              <span>了解更多</span>
+              <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 技术指标展示 -->
+        <div class="mt-24 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div class="p-6">
+            <div class="text-3xl font-bold text-blue-600">50ms</div>
+            <div class="text-gray-500 mt-2">平均响应</div>
+          </div>
+          <div class="p-6">
+            <div class="text-3xl font-bold text-purple-600">10+</div>
+            <div class="text-gray-500 mt-2">检测模型</div>
+          </div>
+          <div class="p-6">
+            <div class="text-3xl font-bold text-cyan-600">24h</div>
+            <div class="text-gray-500 mt-2">专家响应</div>
+          </div>
+          <div class="p-6">
+            <div class="text-3xl font-bold text-emerald-600">100%</div>
+            <div class="text-gray-500 mt-2">数据安全</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA 区块 -->
+    <section class="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <div class="max-w-4xl mx-auto text-center px-6">
+        <h2 class="text-3xl lg:text-4xl font-bold mb-6">准备好开始辨别真相了吗？</h2>
+        <p class="text-xl text-white/90 mb-10">立即注册，体验专业的虚假新闻检测服务</p>
+        <a href="/login" class="inline-flex items-center gap-3 px-8 py-4 bg-white text-blue-600 rounded-full font-semibold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+          <i class="fas fa-rocket"></i>
+          免费开始使用
+        </a>
+      </div>
+    </section>
+
+    <!-- 底部版权信息 - 现代设计 -->
+    <footer class="footer-modern py-8 text-gray-400">
+      <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="flex items-center gap-2 mb-4 md:mb-0">
+            <i class="fas fa-shield-alt text-blue-400"></i>
+            <span class="text-white font-semibold">明辨 · 虚假新闻智能检测系统</span>
+          </div>
+          <div class="text-sm">
+            © 2026 明辨 | 让真相触手可及
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- JavaScript 区域 - 完全保留原有功能，只增强交互 -->
+  <script src="Scripts/jquery.js"></script>
+  <script src="Scripts/bootstrap.min.js"></script>
+  <script src="Scripts/hovertreewelcome.js"></script>
+
+  <script type="text/javascript">
+    // 完全保留原有的炫彩鼠标效果和相关功能
+    (function() {
+      // ============= 炫彩鼠标轨迹效果 (完全保留原有代码) =============
+      var ctx,
+          hue,
+          target = {},
+          tendrils = [],
+          settings = {};
+
+      settings.friction = 0.5;
+      settings.trails = 20;
+      settings.size = 50;
+      settings.dampening = 0.25;
+      settings.tension = 0.98;
+
+      Math.TWO_PI = Math.PI * 2;
+
+      function Oscillator(options) {
+        this.init(options || {});
+      }
+
+      Oscillator.prototype = (function() {
+        var value = 0;
+        return {
+          init: function(options) {
+            this.phase = options.phase || 0;
+            this.offset = options.offset || 0;
+            this.frequency = options.frequency || 0.001;
+            this.amplitude = options.amplitude || 1;
+          },
+          update: function() {
+            this.phase += this.frequency;
+            value = this.offset + Math.sin(this.phase) * this.amplitude;
+            return value;
+          },
+          value: function() {
+            return value;
+          }
+        };
+      })();
+
+      function Tendril(options) {
+        this.init(options || {});
+      }
+
+      Tendril.prototype = (function() {
+        function Node() {
+          this.x = 0;
+          this.y = 0;
+          this.vy = 0;
+          this.vx = 0;
+        }
+        return {
+          init: function(options) {
+            this.spring = options.spring + (Math.random() * 0.1) - 0.05;
+            this.friction = settings.friction + (Math.random() * 0.01) - 0.005;
+            this.nodes = [];
+            for (var i = 0, node; i < settings.size; i++) {
+              node = new Node();
+              node.x = target.x;
+              node.y = target.y;
+              this.nodes.push(node);
+            }
+          },
+          update: function() {
+            var spring = this.spring,
+                node = this.nodes[0];
+            node.vx += (target.x - node.x) * spring;
+            node.vy += (target.y - node.y) * spring;
+            for (var prev, i = 0, n = this.nodes.length; i < n; i++) {
+              node = this.nodes[i];
+              if (i > 0) {
+                prev = this.nodes[i - 1];
+                node.vx += (prev.x - node.x) * spring;
+                node.vy += (prev.y - node.y) * spring;
+                node.vx += prev.vx * settings.dampening;
+                node.vy += prev.vy * settings.dampening;
+              }
+              node.vx *= this.friction;
+              node.vy *= this.friction;
+              node.x += node.vx;
+              node.y += node.vy;
+              spring *= settings.tension;
+            }
+          },
+          draw: function() {
+            var x = this.nodes[0].x,
+                y = this.nodes[0].y,
+                a, b;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            for (var i = 1, n = this.nodes.length - 2; i < n; i++) {
+              a = this.nodes[i];
+              b = this.nodes[i + 1];
+              x = (a.x + b.x) * 0.5;
+              y = (a.y + b.y) * 0.5;
+              ctx.quadraticCurveTo(a.x, a.y, x, y);
+            }
+            a = this.nodes[i];
+            b = this.nodes[i + 1];
+            ctx.quadraticCurveTo(a.x, a.y, b.x, b.y);
+            ctx.stroke();
+            ctx.closePath();
+          }
+        };
+      })();
+
+      function initCanvas(event) {
+        document.removeEventListener('mousemove', initCanvas);
+        document.removeEventListener('touchstart', initCanvas);
+        document.addEventListener('mousemove', mousemove);
+        document.addEventListener('touchmove', mousemove);
+        document.addEventListener('touchstart', touchstart);
+        if (event) mousemove(event);
+        reset();
+        loop();
+      }
+
+      function reset() {
+        tendrils = [];
+        for (var i = 0; i < settings.trails; i++) {
+          tendrils.push(new Tendril({
+            spring: 0.45 + 0.025 * (i / settings.trails)
+          }));
+        }
+      }
+
+      function loop() {
+        if (!ctx.running) return;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(8,5,16,0.4)';
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'hsla(' + Math.round(hue.update()) + ',90%,50%,0.25)';
+        ctx.lineWidth = 1;
+        for (var i = 0, tendril; i < settings.trails; i++) {
+          tendril = tendrils[i];
+          tendril.update();
+          tendril.draw();
+        }
+        ctx.frame++;
+        requestAnimFrame(loop);
+      }
+
+      function resize() {
+        if (ctx && ctx.canvas) {
+          ctx.canvas.width = window.innerWidth;
+          ctx.canvas.height = window.innerHeight;
+        }
+      }
+
+      function mousemove(event) {
+        if (event.touches) {
+          target.x = event.touches[0].pageX;
+          target.y = event.touches[0].pageY;
+        } else {
+          target.x = event.clientX;
+          target.y = event.clientY;
+        }
+        event.preventDefault();
+      }
+
+      function touchstart(event) {
+        if (event.touches.length == 1) {
+          target.x = event.touches[0].pageX;
+          target.y = event.touches[0].pageY;
+        }
+      }
+
+      window.requestAnimFrame = (function() {
+        return window.requestAnimationEffect ||
+               window.webkitRequestAnimationFrame ||
+               window.mozRequestAnimationFrame ||
+               function(fn) { window.setTimeout(fn, 1000/60); };
+      })();
+
+      function startColorEffect() {
+        var canvas = document.getElementById('canvas');
+        if (!canvas) return;
+        ctx = canvas.getContext('2d');
+        ctx.running = true;
+        ctx.frame = 1;
+        hue = new Oscillator({
+          phase: Math.random() * Math.TWO_PI,
+          amplitude: 85,
+          frequency: 0.0015,
+          offset: 285
+        });
+        document.addEventListener('mousemove', initCanvas);
+        document.addEventListener('touchstart', initCanvas);
+        window.addEventListener('resize', resize);
+        resize();
+      }
+
+      // ============= 原有交互功能 =============
+      function initMobileMenu() {
+        var menuToggle = document.getElementById("menu-toggle");
+        if (menuToggle) {
+          menuToggle.addEventListener("click", function(e) {
+            e.stopPropagation();
+            var mobileMenu = document.getElementById("mobile-menu");
+            if (mobileMenu) {
+              mobileMenu.classList.toggle("hidden");
+            }
+          });
+        }
+      }
+
+      function initSmoothScroll() {
+        document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+          anchor.addEventListener("click", function(e) {
+            e.preventDefault();
+            var target = document.querySelector(this.getAttribute("href"));
+            if (target) {
+              window.scrollTo({
+                top: target.offsetTop - 80,
+                behavior: "smooth",
+              });
+            }
+          });
+        });
+      }
+
+      // 页面加载完成后初始化
+      document.addEventListener("DOMContentLoaded", function() {
+        startColorEffect();
+        initMobileMenu();
+        initSmoothScroll();
+        console.log("所有功能初始化完成 - 炫彩效果已启动，原有事件已保留");
+      });
+
+      window.addEventListener('beforeunload', function() {
+        if (ctx) ctx.running = false;
+      });
+    })();
+  </script>
+
+  <!-- 确保画布样式正确 (完全保留) -->
+  <style>
+    /* 画布只显示效果，不阻挡点击 */
+    #canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+    /* 内容层 */
+    .content-layer {
+      position: relative;
+      z-index: 10;
+      pointer-events: auto;
+    }
+    /* 确保所有交互元素都在画布上层 */
+    nav, .hero-section, #features, footer, a, button, .btn, [onclick] {
+      position: relative;
+      z-index: 20;
+      pointer-events: auto;
+    }
+  </style>
+</body>
+</html>

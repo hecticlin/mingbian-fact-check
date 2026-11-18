@@ -1,0 +1,1176 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<!-- Google Font & Font Awesome -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<style>
+    /* 全局样式 */
+    * {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+        background: linear-gradient(145deg, #f5f9ff 0%, #edf2fa 100%);
+    }
+
+    /* 聊天室容器 */
+    .chat-container {
+        display: flex;
+        height: calc(100vh - 80px);
+        margin: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 32px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    }
+
+    /* 左侧用户列表 */
+    .user-list {
+        width: 340px;
+        background: rgba(248, 250, 252, 0.9);
+        backdrop-filter: blur(10px);
+        border-right: 1px solid rgba(226, 232, 240, 0.6);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-list-header {
+        padding: 24px 20px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .user-list-header h3 {
+        margin: 0;
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .user-list-header h3 i {
+        color: #1e88e5;
+        font-size: 1.5rem;
+        background: rgba(30, 136, 229, 0.1);
+        padding: 8px;
+        border-radius: 12px;
+    }
+
+    .user-list-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+
+    /* 自定义滚动条 */
+    .user-list-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .user-list-content::-webkit-scrollbar-track {
+        background: rgba(226, 232, 240, 0.3);
+        border-radius: 10px;
+    }
+
+    .user-list-content::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.5);
+        border-radius: 10px;
+    }
+
+    .user-list-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 116, 139, 0.7);
+    }
+
+    .user-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-bottom: 8px;
+        position: relative;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(226, 232, 240, 0.6);
+    }
+
+    .user-item:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateX(4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+        border-color: #1e88e5;
+    }
+
+    .user-item.active {
+        background: linear-gradient(135deg, #1e88e5, #1976d2);
+        border-color: transparent;
+        box-shadow: 0 10px 25px -8px #1e88e5;
+    }
+
+    .user-item.active .user-name,
+    .user-item.active .last-message {
+        color: white;
+    }
+
+    .user-avatar-wrapper {
+        position: relative;
+        margin-right: 15px;
+    }
+
+    .user-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+    .user-item:hover .user-avatar {
+        transform: scale(1.05);
+    }
+
+    .online-indicator {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #94a3b8;
+        border: 2.5px solid white;
+        transition: all 0.2s;
+    }
+
+    .online-indicator.online {
+        background: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+
+    .user-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-name {
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 1.05rem;
+    }
+
+    .last-message {
+        font-size: 0.85rem;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .last-message i {
+        font-size: 0.7rem;
+        opacity: 0.7;
+    }
+
+    .unread-badge {
+        background: #dc2626;
+        color: white;
+        border-radius: 30px;
+        padding: 3px 10px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-left: 8px;
+        box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    /* 右侧聊天区域 */
+    .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    .chat-header {
+        padding: 20px 25px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+    }
+
+    .chat-header-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .chat-header-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-header-name {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1.2rem;
+        margin-bottom: 4px;
+    }
+
+    .chat-header-status {
+        font-size: 0.85rem;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .status-dot.online {
+        background: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+
+    .status-dot.offline {
+        background: #94a3b8;
+    }
+
+    .back-to-news-btn {
+        padding: 10px 20px;
+        background: rgba(241, 245, 249, 0.8);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 40px;
+        color: #1e293b;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+    }
+
+    .back-to-news-btn:hover {
+        background: #1e293b;
+        color: white;
+        border-color: #1e293b;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -10px #1e293b;
+    }
+
+    /* 消息区域 - 非常浅的蓝色背景 */
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 25px;
+        background: #f8fcff;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* 自定义滚动条 */
+    .messages-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .messages-container::-webkit-scrollbar-track {
+        background: rgba(226, 232, 240, 0.3);
+    }
+
+    .messages-container::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.5);
+        border-radius: 10px;
+    }
+
+    /* 时间提示 - 居中显示 */
+    .time-divider {
+        text-align: center;
+        margin: 16px 0;
+        position: relative;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .time-divider span {
+        background: rgba(0, 0, 0, 0.05);
+        backdrop-filter: blur(5px);
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        color: #64748b;
+        position: relative;
+        display: inline-block;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    /* 消息气泡 - 自适应文字大小 */
+    .message {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        animation: messagePop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        max-width: 80%;
+        margin-bottom: 2px;
+    }
+
+    .message.sent {
+        flex-direction: row-reverse;
+        margin-left: auto;
+    }
+
+    .message.received {
+        margin-right: auto;
+    }
+
+    @keyframes messagePop {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        flex-shrink: 0;
+        transition: transform 0.2s;
+        align-self: flex-end;
+    }
+
+    .message-avatar:hover {
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+
+    .message-bubble {
+        position: relative;
+        max-width: calc(100% - 52px);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .message.sent .message-bubble {
+        flex-direction: row-reverse;
+    }
+
+    .message-content {
+        padding: 12px 18px;
+        border-radius: 20px;
+        position: relative;
+        word-wrap: break-word;
+        line-height: 1.5;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        font-size: 1rem;
+        min-width: 60px;
+    }
+
+    /* 根据文字长度调整气泡样式 */
+    .message-content.short-text {
+        padding: 8px 16px;
+    }
+
+    .message-content.medium-text {
+        padding: 10px 18px;
+    }
+
+    .message-content.long-text {
+        padding: 14px 20px;
+    }
+
+    /* 发送的消息气泡 */
+    .message.sent .message-content {
+        background: linear-gradient(135deg, #1e88e5, #1976d2);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    /* 接收的消息气泡 */
+    .message.received .message-content {
+        background: white;
+        color: #1e293b;
+        border-bottom-left-radius: 4px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    /* 气泡小尾巴 */
+    .message.sent .message-content::after {
+        content: '';
+        position: absolute;
+        right: -8px;
+        bottom: 0;
+        width: 0;
+        height: 0;
+        border-left: 10px solid #1976d2;
+        border-right: 0 solid transparent;
+        border-bottom: 10px solid transparent;
+        border-top: 0 solid transparent;
+    }
+
+    .message.received .message-content::after {
+        content: '';
+        position: absolute;
+        left: -8px;
+        bottom: 0;
+        width: 0;
+        height: 0;
+        border-right: 10px solid white;
+        border-left: 0 solid transparent;
+        border-bottom: 10px solid transparent;
+        border-top: 0 solid transparent;
+    }
+
+    /* 撤回图标 */
+    .withdraw-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+        opacity: 0;
+        transform: scale(0.8);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .message.sent:hover .withdraw-icon {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .withdraw-icon:hover {
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #dc2626;
+        transform: scale(1.1) !important;
+    }
+
+    /* 已读状态 - 放在气泡内 */
+    .read-status {
+        font-size: 0.7rem;
+        color: #4caf50;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        margin-left: 4px;
+    }
+
+    .message.sent .read-status {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* 撤回的消息 */
+    .message.withdrawn .message-content {
+        background: #e2e8f0 !important;
+        color: #94a3b8 !important;
+        font-style: italic;
+    }
+
+    .message.withdrawn .message-content::after {
+        display: none;
+    }
+
+    .message.withdrawn .message-avatar {
+        opacity: 0.5;
+    }
+
+    .message.withdrawn .withdraw-icon {
+        display: none;
+    }
+
+    /* 输入区域 */
+    .input-area {
+        padding: 20px 25px;
+        border-top: 1px solid rgba(226, 232, 240, 0.6);
+        display: flex;
+        gap: 15px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+    }
+
+    .message-input {
+        flex: 1;
+        padding: 14px 20px;
+        border: 2px solid rgba(226, 232, 240, 0.8);
+        border-radius: 40px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        font-family: inherit;
+        background: white;
+    }
+
+    .message-input:focus {
+        outline: none;
+        border-color: #1e88e5;
+        box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.1);
+    }
+
+    .send-btn {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1e88e5, #1976d2);
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        box-shadow: 0 8px 20px -8px #1e88e5;
+    }
+
+    .send-btn:hover {
+        transform: scale(1.1) rotate(15deg);
+        box-shadow: 0 12px 25px -8px #1e88e5;
+    }
+
+    .send-btn:disabled {
+        background: linear-gradient(135deg, #94a3b8, #64748b);
+        transform: none;
+        box-shadow: none;
+        cursor: not-allowed;
+    }
+
+    /* 空状态 */
+    .empty-chat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #94a3b8;
+        text-align: center;
+        padding: 40px;
+    }
+
+    .empty-chat i {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+        background: rgba(148, 163, 184, 0.1);
+        padding: 20px;
+        border-radius: 50%;
+    }
+
+    .empty-chat p {
+        font-size: 1.2rem;
+        font-weight: 500;
+        margin-bottom: 10px;
+    }
+
+    .empty-chat small {
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+
+    /* 加载动画 */
+    .loading {
+        text-align: center;
+        padding: 30px;
+        color: #94a3b8;
+    }
+
+    .loading i {
+        animation: spin 1s linear infinite;
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+        .chat-container {
+            flex-direction: column;
+            height: calc(100vh - 100px);
+            margin: 10px;
+        }
+
+        .user-list {
+            width: 100%;
+            height: 250px;
+        }
+
+        .message {
+            max-width: 90%;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .chat-container {
+            margin: 5px;
+        }
+
+        .user-list-header,
+        .chat-header {
+            padding: 15px;
+        }
+
+        .messages-container {
+            padding: 15px;
+        }
+
+        .message-content {
+            padding: 10px 14px;
+            font-size: 0.9rem;
+        }
+
+        .input-area {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- 左侧用户列表 -->
+    <div class="user-list">
+        <div class="user-list-header">
+            <h3>
+                <i class="fas fa-comments"></i>
+                消息列表
+                {% if chat_users %}
+                <span style="font-size: 0.8rem; color: #64748b; margin-left: auto;">{{ chat_users|length }}个对话</span>
+                {% endif %}
+            </h3>
+        </div>
+        <div class="user-list-content" id="user-list">
+            {% if chat_users %}
+                {% for user in chat_users %}
+                <div class="user-item {% if user.chat_user == target_user %}active{% endif %}"
+                     data-user="{{ user.chat_user }}"
+                     onclick="selectUser('{{ user.chat_user }}')">
+                    <div class="user-avatar-wrapper">
+                        <img src="{{ user.avatar_url }}" alt="{{ user.nickname }}" class="user-avatar"
+                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='touxiang_image/1.jpg') }}'">
+                        <span class="online-indicator" id="status-{{ user.chat_user }}"></span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">
+                            {{ user.nickname }}
+                            {% if user.unread_count > 0 %}
+                            <span class="unread-badge">{{ user.unread_count }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="last-message">
+                            <i class="far fa-clock"></i>
+                            {% if user.last_message_time %}
+                                {{ user.last_message_time.strftime('%H:%M') }}
+                            {% else %}
+                                暂无消息
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-chat" style="padding: 40px 20px;">
+                <i class="fas fa-inbox"></i>
+                <p>暂无消息</p>
+                <small>在新闻页面点击用户头像开始聊天</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 右侧聊天区域 -->
+    <div class="chat-area">
+        {% if target_user %}
+            {% set user_info = get_user_info(target_user) %}
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <img src="{{ user_info.avatar_url if user_info else url_for('static', filename='touxiang_image/1.jpg') }}"
+                         alt="头像" class="chat-header-avatar"
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='touxiang_image/1.jpg') }}'">
+                    <div>
+                        <div class="chat-header-name">{{ user_info.nickname if user_info else target_user }}</div>
+                        <div class="chat-header-status" id="user-status">
+                            <span class="status-dot offline"></span>
+                            离线
+                        </div>
+                    </div>
+                </div>
+                <button class="back-to-news-btn" onclick="window.location.href='/news'">
+                    <i class="fas fa-arrow-left"></i> 返回新闻
+                </button>
+            </div>
+
+            <div class="messages-container" id="messages-container">
+                <div class="loading" id="loading-messages">
+                    <i class="fas fa-spinner"></i>
+                    <div>加载消息中...</div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="message-input" class="message-input"
+                       placeholder="输入消息..." maxlength="1000"
+                       autocomplete="off">
+                <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        {% else %}
+            <div class="empty-chat">
+                <i class="fas fa-comment-dots"></i>
+                <p>选择一个用户开始聊天</p>
+                <small>在新闻页面点击用户头像即可发送私信</small>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+let currentChatUser = '{{ target_user }}';
+let messageInterval = null;
+let statusInterval = null;
+let currentUserAvatar = '{{ url_for('static', filename='touxiang_image/1.jpg') }}';
+
+$(document).ready(function() {
+    if (currentChatUser) {
+        loadMessages();
+        startMessagePolling();
+        startStatusPolling();
+
+        // 获取当前用户头像
+        $.get('/get_user_avatar', function(response) {
+            if (response.success) {
+                currentUserAvatar = response.avatar_url;
+            }
+        });
+    }
+
+    // 回车发送消息
+    $('#message-input').keypress(function(e) {
+        if (e.which === 13 && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // 更新用户在线状态
+    updateUserStatus();
+    setInterval(updateUserStatus, 30000);
+
+    // 点击输入区域时滚动到底部
+    $('#message-input').focus(function() {
+        scrollToBottom();
+    });
+});
+
+function selectUser(username) {
+    window.location.href = '/my_messages?user=' + username;
+}
+
+function loadMessages() {
+    if (!currentChatUser) return;
+
+    $('#loading-messages').show();
+    $('#messages-container').empty();
+
+    $.get('/get_messages', { user: currentChatUser }, function(response) {
+        $('#loading-messages').hide();
+
+        if (response.success) {
+            displayMessages(response.messages);
+
+            // 清除未读标记
+            $(`.user-item[data-user="${currentChatUser}"] .unread-badge`).remove();
+        } else {
+            showError('加载失败，请刷新重试');
+        }
+    }).fail(function() {
+        $('#loading-messages').hide();
+        showError('网络连接失败');
+    });
+}
+
+function displayMessages(messages) {
+    const container = $('#messages-container');
+    container.empty();
+
+    if (messages.length === 0) {
+        container.html(`
+            <div class="empty-chat">
+                <i class="fas fa-comment-dots"></i>
+                <p>暂无消息</p>
+                <small>发送第一条消息开始聊天吧</small>
+            </div>
+        `);
+        return;
+    }
+
+    let lastTimeGroup = null;
+
+    messages.forEach(function(msg) {
+        const msgDate = new Date(msg.timestamp);
+        const timeGroup = getTimeGroup(msgDate);
+
+        // 如果时间组发生变化，添加时间提示
+        if (!lastTimeGroup || lastTimeGroup !== timeGroup) {
+            container.append(`
+                <div class="time-divider">
+                    <span>${formatMessageTime(msgDate)}</span>
+                </div>
+            `);
+            lastTimeGroup = timeGroup;
+        }
+
+        if (msg.is_withdrawn) {
+            displayWithdrawnMessage(msg);
+        } else {
+            displayNormalMessage(msg);
+        }
+    });
+
+    // 滚动到底部
+    scrollToBottom();
+}
+
+function getTimeGroup(date) {
+    const now = new Date();
+    const diffMinutes = Math.floor((now - date) / (1000 * 60));
+
+    if (diffMinutes < 5) {
+        // 5分钟内的消息归为一组
+        return 'just_now';
+    } else {
+        // 否则按小时分组
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+    }
+}
+
+function formatMessageTime(date) {
+    const now = new Date();
+    const diffMinutes = Math.floor((now - date) / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    // 今天的消息显示时间
+    if (date.toDateString() === now.toDateString()) {
+        if (diffMinutes < 1) {
+            return '刚刚';
+        } else if (diffMinutes < 60) {
+            return `${diffMinutes}分钟前`;
+        } else {
+            return formatTime(date);
+        }
+    }
+    // 昨天的消息
+    else if (diffDays === 1) {
+        return `昨天 ${formatTime(date)}`;
+    }
+    // 更早的消息
+    else {
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${formatTime(date)}`;
+    }
+}
+
+function formatTime(date) {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+function displayNormalMessage(msg) {
+    const container = $('#messages-container');
+    const messageClass = msg.is_self ? 'sent' : 'received';
+
+    // 根据消息长度添加不同的样式类
+    let textLengthClass = 'medium-text';
+    if (msg.content.length < 10) {
+        textLengthClass = 'short-text';
+    } else if (msg.content.length > 50) {
+        textLengthClass = 'long-text';
+    }
+
+    // 获取对方头像
+    const avatarUrl = msg.is_self ? currentUserAvatar : '{{ user_info.avatar_url if user_info else "" }}';
+
+    const messageHtml = `
+        <div class="message ${messageClass}" data-message-id="${msg.id}">
+            <img src="${avatarUrl}"
+                 class="message-avatar"
+                 alt="头像"
+                 onclick="${msg.is_self ? '' : 'startChat(\'' + currentChatUser + '\')'}"
+                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='touxiang_image/1.jpg') }}'">
+            <div class="message-bubble">
+                ${msg.is_self ? '<div class="withdraw-icon" onclick="withdrawMessage(' + msg.id + ')" title="撤回消息"><i class="fas fa-undo-alt"></i></div>' : ''}
+                <div class="message-content ${textLengthClass}">
+                    ${escapeHtml(msg.content)}
+                    ${msg.is_self ? (msg.is_read ? '<span class="read-status"><i class="fas fa-check-double"></i></span>' : '<span class="read-status"><i class="fas fa-check"></i></span>') : ''}
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.append(messageHtml);
+}
+
+function displayWithdrawnMessage(msg) {
+    const container = $('#messages-container');
+    const messageClass = msg.is_self ? 'sent' : 'received';
+
+    const avatarUrl = msg.is_self ? currentUserAvatar : '{{ user_info.avatar_url if user_info else "" }}';
+
+    const messageHtml = `
+        <div class="message withdrawn ${messageClass}" data-message-id="${msg.id}">
+            <img src="${avatarUrl}"
+                 class="message-avatar"
+                 alt="头像"
+                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='touxiang_image/1.jpg') }}'">
+            <div class="message-bubble">
+                <div class="message-content">
+                    消息已撤回
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.append(messageHtml);
+}
+
+function withdrawMessage(messageId) {
+    if (!confirm('确定要撤回这条消息吗？')) return;
+
+    $.ajax({
+        url: '/withdraw_message',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            message_id: messageId
+        }),
+        success: function(response) {
+            if (response.success) {
+                // 更新消息显示
+                const messageElement = $(`.message[data-message-id="${messageId}"]`);
+                const avatar = messageElement.find('.message-avatar').clone();
+
+                messageElement.addClass('withdrawn').empty().append(avatar, `
+                    <div class="message-bubble">
+                        <div class="message-content">
+                            消息已撤回
+                        </div>
+                    </div>
+                `);
+            } else {
+                alert(response.message || '撤回失败');
+            }
+        },
+        error: function() {
+            alert('撤回失败，请稍后再试');
+        }
+    });
+}
+
+function sendMessage() {
+    const input = $('#message-input');
+    const content = input.val().trim();
+    const sendBtn = $('#send-btn');
+
+    if (!content || !currentChatUser) return;
+    if (content.length > 1000) {
+        alert('消息内容不能超过1000个字符');
+        return;
+    }
+
+    sendBtn.prop('disabled', true);
+
+    $.ajax({
+        url: '/send_message',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            receiver: currentChatUser,
+            content: content
+        }),
+        success: function(response) {
+            if (response.success) {
+                input.val('');
+                loadMessages();
+            } else {
+                alert(response.message || '发送失败');
+            }
+        },
+        error: function() {
+            alert('发送失败，请稍后再试');
+        },
+        complete: function() {
+            sendBtn.prop('disabled', false);
+            input.focus();
+        }
+    });
+}
+
+function startMessagePolling() {
+    if (messageInterval) {
+        clearInterval(messageInterval);
+    }
+
+    // 每3秒检查新消息
+    messageInterval = setInterval(function() {
+        if (currentChatUser && document.visibilityState === 'visible') {
+            checkNewMessages();
+        }
+    }, 3000);
+}
+
+function checkNewMessages() {
+    $.get('/get_messages', { user: currentChatUser }, function(response) {
+        if (response.success) {
+            const container = $('#messages-container');
+            const currentMessages = container.find('.message').length;
+
+            if (response.messages.length !== currentMessages) {
+                displayMessages(response.messages);
+            }
+        }
+    });
+}
+
+function startStatusPolling() {
+    if (statusInterval) {
+        clearInterval(statusInterval);
+    }
+
+    statusInterval = setInterval(function() {
+        updateOnlineStatus();
+    }, 10000);
+}
+
+function updateOnlineStatus() {
+    if (!currentChatUser) return;
+
+    $.get('/get_user_status', { users: currentChatUser }, function(response) {
+        if (response.success && response.status[currentChatUser]) {
+            const status = response.status[currentChatUser];
+            const statusElement = $('#user-status');
+
+            if (status.is_online) {
+                statusElement.html(`
+                    <span class="status-dot online"></span>
+                    在线
+                `);
+            } else {
+                const lastActive = new Date(status.last_active).toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                statusElement.html(`
+                    <span class="status-dot offline"></span>
+                    最后在线 ${lastActive}
+                `);
+            }
+        }
+    });
+}
+
+function updateUserStatus() {
+    $.post('/update_status');
+}
+
+function scrollToBottom() {
+    const container = $('#messages-container');
+    container.scrollTop(container[0].scrollHeight);
+}
+
+function showError(message) {
+    $('#messages-container').html(`
+        <div class="empty-chat">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>${message}</p>
+            <small>点击重试</small>
+        </div>
+    `).click(function() {
+        loadMessages();
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 页面可见性变化时处理
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && currentChatUser) {
+        loadMessages();
+    }
+});
+
+// 页面关闭前清除定时器
+window.onbeforeunload = function() {
+    if (messageInterval) {
+        clearInterval(messageInterval);
+    }
+    if (statusInterval) {
+        clearInterval(statusInterval);
+    }
+};
+</script>
+{% endblock %}

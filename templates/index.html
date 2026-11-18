@@ -1,0 +1,444 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<style>
+    .home-section {
+        padding-top: 40px;
+        margin-left: 100px;
+        margin-right: 100px;
+        position: relative;
+        z-index: 10;
+    }
+
+    .hero-vision {
+        margin-bottom: 60px;
+        border-radius: 42px;
+        background: #ffffff;
+        box-shadow: 0 30px 50px -20px rgba(0, 45, 85, 0.2);
+        overflow: hidden;
+        position: relative;
+        border: 1px solid rgba(230, 242, 255, 0.8);
+        transition: box-shadow 0.4s ease;
+    }
+    .hero-vision:hover {
+        box-shadow: 0 35px 55px -18px rgba(26, 73, 129, 0.28);
+    }
+    .hero-vision::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 0% 0%, rgba(212, 230, 245, 0.3) 0%, transparent 60%),
+                    radial-gradient(ellipse at 100% 100%, rgba(188, 215, 240, 0.2) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 1;
+    }
+    .hero-content {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 3.5rem 4rem;
+        position: relative;
+        z-index: 2;
+        background: rgba(255,255,255,0.5);
+        backdrop-filter: blur(2px);
+    }
+    .hero-text-col {
+        flex: 1 1 55%;
+        padding-right: 3rem;
+    }
+    .hero-image-col {
+        flex: 1 1 40%;
+        text-align: center;
+    }
+
+    /* ✅ 眉标：放大 + 间距优化 */
+    .hero-eyebrow {
+        font-size: 1.05rem;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        color: #2b6ca3;
+        font-weight: 600;
+        margin-bottom: 1.2rem;
+        display: block;
+    }
+
+    /* ✅ 主标题：3.2 → 3.6rem */
+    .hero-main-title {
+        font-size: 3.6rem;
+        font-weight: 700;
+        line-height: 1.15;
+        margin-bottom: 1.6rem;
+        background: linear-gradient(145deg, #153E6B, #2A5F8A, #3E7BA6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.02em;
+    }
+
+    /* ✅ 描述文字：1.15 → 1.25rem，行高 1.8 */
+    .hero-desc {
+        font-size: 1.25rem;
+        line-height: 1.85;
+        color: #2e405b;
+        margin-bottom: 2.5rem;
+        opacity: 0.9;
+        max-width: 620px;
+        font-weight: 400;
+    }
+
+    .hero-metrics {
+        display: flex;
+        gap: 3rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .metric-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ✅ 指标数字：2.1 → 2.8rem */
+    .metric-value {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: #103a5e;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+    }
+
+    /* ✅ 指标标签：0.9 → 1.05rem */
+    .metric-label {
+        font-size: 1.05rem;
+        font-weight: 500;
+        color: #4f6f8f;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 0.3rem;
+    }
+
+    .hero-image-frame {
+        display: inline-block;
+        position: relative;
+    }
+    .hero-image-frame img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 28px;
+        box-shadow: 0 28px 40px -20px rgba(26, 73, 129, 0.4);
+        transition: transform 0.4s ease, box-shadow 0.4s ease;
+        border: 2px solid rgba(255,255,255,0.7);
+    }
+    .hero-image-frame img:hover {
+        transform: scale(1.02) translateY(-4px);
+        box-shadow: 0 35px 45px -18px #1A4981;
+    }
+    .hero-dot-pattern {
+        position: absolute;
+        bottom: -15px;
+        right: -15px;
+        width: 120px;
+        height: 120px;
+        background: radial-gradient(circle at 20px 20px, #cbddea 3px, transparent 4px);
+        background-size: 25px 25px;
+        opacity: 0.2;
+        z-index: 0;
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    /* 卡片网格 */
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 28px;
+        margin-top: 40px;
+        margin-bottom: 80px;
+    }
+    .modern-card {
+        background: white;
+        border-radius: 30px;
+        padding: 38px 28px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 35px -10px rgba(0, 55, 100, 0.1);
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .modern-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 45px -12px #1A4981;
+        border-color: rgba(26, 73, 129, 0.1);
+    }
+    .modern-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(26, 73, 129, 0.03) 0%, transparent 70%);
+        border-radius: 50%;
+        z-index: 0;
+        transition: all 0.5s ease;
+    }
+    .modern-card:hover::before {
+        transform: scale(1.2);
+        background: radial-gradient(circle, rgba(26, 73, 129, 0.06) 0%, transparent 70%);
+    }
+
+    /* ✅ 卡片图标：70 → 80px */
+    .card-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #e8f1ff, #d4e4fc);
+        border-radius: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 28px;
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s ease;
+    }
+    .modern-card:hover .card-icon-wrapper {
+        background: linear-gradient(135deg, #1A4981, #2b6ca3);
+        transform: scale(1.05) rotate(5deg);
+    }
+
+    /* ✅ 图标字号：2.2 → 2.5rem */
+    .card-icon-wrapper i {
+        font-size: 2.5rem;
+        color: #1A4981;
+        transition: all 0.3s ease;
+    }
+    .modern-card:hover .card-icon-wrapper i {
+        color: white;
+    }
+
+    /* ✅ 卡片标题：1.5 → 1.7rem */
+    .card-title {
+        font-size: 1.7rem;
+        font-weight: 600;
+        color: #1e2f40;
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 1;
+        line-height: 1.35;
+    }
+    .card-title a {
+        text-decoration: none;
+        color: inherit;
+        transition: color 0.2s;
+    }
+    .modern-card:hover .card-title a {
+        color: #1A4981;
+    }
+
+    /* ✅ 卡片描述：1.0 → 1.1rem，行高 1.8 */
+    .card-description {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #4a5f73;
+        position: relative;
+        z-index: 1;
+        margin-bottom: 22px;
+        flex-grow: 1;
+    }
+
+    .card-footer-line {
+        width: 50px;
+        height: 3px;
+        background: linear-gradient(90deg, #1A4981, #6ba5d9);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+        position: relative;
+        z-index: 1;
+    }
+    .modern-card:hover .card-footer-line {
+        width: 80px;
+    }
+
+    /* ✅ 技术标签：0.8 → 0.95rem */
+    .tech-tag {
+        display: inline-block;
+        padding: 5px 14px;
+        background: rgba(26, 73, 129, 0.05);
+        border-radius: 30px;
+        font-size: 0.95rem;
+        color: #1A4981;
+        margin-right: 8px;
+        margin-top: 10px;
+        border: 1px solid rgba(26, 73, 129, 0.1);
+    }
+
+    /* 响应式 */
+    @media (max-width: 1200px) {
+        .home-section { margin-left: 50px; margin-right: 50px; }
+        .cards-grid { grid-template-columns: repeat(2, 1fr); }
+        .hero-main-title { font-size: 3rem; }
+    }
+    @media (max-width: 768px) {
+        .home-section { margin-left: 20px; margin-right: 20px; padding-top: 20px; }
+        .hero-content { padding: 2rem 1.5rem; flex-direction: column; }
+        .hero-text-col { padding-right: 0; }
+        .hero-main-title { font-size: 2.5rem; }
+        .hero-desc { font-size: 1.1rem; }
+        .cards-grid { grid-template-columns: 1fr; }
+        .hero-metrics { gap: 1.8rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-section">
+
+    <!-- 英雄区域 -->
+    <div class="hero-vision">
+        <div class="hero-content">
+            <div class="hero-text-col">
+                <span class="hero-eyebrow">明辨 · 智能鉴真</span>
+                <h1 class="hero-main-title">虚假新闻智能检测系统</h1>
+                <p class="hero-desc">
+                    多模态内容的爆炸式扩张使虚假信息的传播形式愈发隐蔽与复杂。本系统融合大语言模型三层事件抽取与两阶段深度推理、大型视觉语言模型的跨模态语义理解，以及三级权威信源实时核验，构建覆盖纯文本与图文多模态、全链路可溯源的智能鉴真平台。
+                </p>
+                <div class="hero-metrics">
+                    <div class="metric-item">
+                        <span class="metric-value">97%</span>
+                        <span class="metric-label">检测准确率</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value">10万+</span>
+                        <span class="metric-label">训练数据</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-value">实时</span>
+                        <span class="metric-label">在线检测</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image-col">
+                <div class="hero-image-frame">
+                    <img src="../static/img/index.jpeg" alt="明辨系统"
+                         onerror="this.src='https://placehold.co/500x400/1A4981/white?text=News+Detection'">
+                    <div class="hero-dot-pattern"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能卡片网格 -->
+    <div class="cards-grid">
+
+        <!-- 卡片1：三级信源体系权威检索（原卡片2前移） -->
+        <div class="modern-card">
+            <div class="card-icon-wrapper">
+                <i class="fas fa-sitemap"></i>
+            </div>
+            <h3 class="card-title">
+                <a href="#">三级信源体系权威检索</a>
+            </h3>
+            <p class="card-description">
+                构建涵盖国家级权威媒体、行业级专业机构、区域级主流平台的三级信源核验体系，实时抓取并交叉比对多源权威报道，结合置信度加权算法，为每项检测结论提供可追溯的权威依据。
+            </p>
+            <div>
+                <span class="tech-tag">三级信源分级</span>
+                <span class="tech-tag">实时检索</span>
+                <span class="tech-tag">置信度加权</span>
+            </div>
+            <div class="card-footer-line"></div>
+        </div>
+
+        <!-- 卡片2：大型视觉语言模型（原卡片1后移） -->
+        <div class="modern-card">
+            <div class="card-icon-wrapper">
+                <i class="fas fa-eye"></i>
+            </div>
+            <h3 class="card-title">
+                <a href="#">大型视觉语言模型</a>
+            </h3>
+            <p class="card-description">
+                融合先进的大型视觉语言模型（VLM），实现对图文混合内容的跨模态语义对齐与深度理解，精准识别图像篡改、文图语义矛盾等深度伪造手段，将检测维度从纯文本全面延伸至多模态内容。
+            </p>
+            <div>
+                <span class="tech-tag">VLM</span>
+                <span class="tech-tag">多模态理解</span>
+                <span class="tech-tag">图文语义对齐</span>
+            </div>
+            <div class="card-footer-line"></div>
+        </div>
+
+        <!-- 卡片3：LLM 深度文本检测（替换原"AI大模型与深度学习"） -->
+        <div class="modern-card">
+            <div class="card-icon-wrapper">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h3 class="card-title">
+                <a href="#">LLM 深度文本检测</a>
+            </h3>
+            <p class="card-description">
+                基于 DeepSeek 大语言模型，对新闻进行主干事件、次要事件、六类隐含信息的三层递进式事件抽取，每个分支经过「初判→批判复核」两阶段验证，结合联网权威核查，实现全链路可解释的文本检测。
+            </p>
+            <div>
+                <span class="tech-tag">三层事件抽取</span>
+                <span class="tech-tag">两阶段验证</span>
+                <span class="tech-tag">DeepSeek</span>
+            </div>
+            <div class="card-footer-line"></div>
+        </div>
+
+        <!-- 卡片4：可视化交互分析平台 -->
+        <div class="modern-card">
+            <div class="card-icon-wrapper">
+                <i class="fas fa-laptop-code"></i>
+            </div>
+            <h3 class="card-title">
+                <a href="#">可视化交互分析平台</a>
+            </h3>
+            <p class="card-description">
+                后端基于 Flask 框架搭建高性能 Web 服务接口，前端采用 Bootstrap 与 ECharts 构建可视化交互平台，支持对虚假新闻的在线实时评估、结果解释与多维统计展示。
+            </p>
+            <div>
+                <span class="tech-tag">Flask</span>
+                <span class="tech-tag">Bootstrap</span>
+                <span class="tech-tag">ECharts</span>
+            </div>
+            <div class="card-footer-line"></div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(function() {
+        // 激活首页导航
+        $('#nav-home').addClass('active');
+
+        const hero = document.querySelector('.hero-vision');
+        if (hero) {
+            hero.style.opacity = '0';
+            hero.style.transform = 'translateY(8px)';
+            hero.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            setTimeout(() => {
+                hero.style.opacity = '1';
+                hero.style.transform = 'translateY(0)';
+            }, 80);
+        }
+
+        const cards = document.querySelectorAll('.modern-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 150 + index * 100);
+        });
+    });
+</script>
+{% endblock %}

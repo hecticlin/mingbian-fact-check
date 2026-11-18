@@ -1,0 +1,342 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<!-- Google Font & Font Awesome -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+    /* 收藏页面样式 */
+    .favorites-container {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+
+    .favorites-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .favorites-header h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+
+    .back-btn {
+        padding: 0.6rem 1.8rem;
+        background: transparent;
+        color: #64748b;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 40px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+        transform: translateY(-2px);
+    }
+
+    .empty-favorites {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 40px;
+        color: #94a3b8;
+    }
+
+    .empty-favorites i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-favorites p {
+        font-size: 1.2rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+    }
+
+    .go-news-btn {
+        display: inline-block;
+        padding: 0.8rem 2rem;
+        background: linear-gradient(135deg, #1e293b, #2d4b71);
+        color: white;
+        border-radius: 40px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .go-news-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -10px #1e293b;
+    }
+
+    /* 复用新闻卡片样式 */
+    .news-card {
+        background: white;
+        border-radius: 28px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 15px 35px -10px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02);
+        transition: all 0.2s;
+    }
+    .news-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 25px 40px -12px rgba(0,45,80,0.15);
+    }
+
+    .author-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.2rem;
+        flex-wrap: wrap;
+    }
+
+    .author-avatar-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: #f1f5f9;
+        border: 2px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .author-avatar-wrapper:hover {
+        transform: scale(1.05);
+        border-color: #1e88e5;
+    }
+
+    .author-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .author-info {
+        flex: 1;
+    }
+
+    .author-name {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1.1rem;
+        display: block;
+        margin-bottom: 0.2rem;
+    }
+
+    .news-time {
+        font-size: 0.85rem;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .news-type-tag {
+        display: inline-block;
+        padding: 0.3rem 1rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: auto;
+        vertical-align: middle;
+    }
+
+    .news-type-tag.real {
+        background: linear-gradient(135deg, #05966920, #10b98120);
+        color: #059669;
+        border: 1px solid #10b98140;
+    }
+
+    .news-type-tag.fake {
+        background: linear-gradient(135deg, #b91c1c20, #dc262620);
+        color: #b91c1c;
+        border: 1px solid #dc262640;
+    }
+
+    .news-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0.5rem 0 1rem;
+    }
+
+    .news-content {
+        color: #334155;
+        line-height: 1.7;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        white-space: pre-line;
+    }
+
+    .news-stats {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .stat-item i {
+        font-size: 1.1rem;
+    }
+
+    .stat-item.liked i {
+        color: #ef4444;
+    }
+
+    .unfavorite-btn {
+        margin-left: auto;
+        background: none;
+        border: 1px solid #e2e8f0;
+        color: #dc2626;
+        padding: 0.5rem 1.2rem;
+        border-radius: 40px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .unfavorite-btn:hover {
+        background: #fee2e2;
+        border-color: #dc2626;
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="favorites-container">
+    <div class="favorites-header">
+        <h1>
+            <i class="fas fa-star" style="margin-right: 0.5rem;"></i>
+            我的收藏
+        </h1>
+        <a href="/news" class="back-btn">
+            <i class="fas fa-arrow-left"></i> 返回新闻
+        </a>
+    </div>
+
+    <div id="favorites-list">
+        {% if news_list %}
+            {% for news in news_list %}
+            <div class="news-card" data-news-id="{{ news.id }}">
+                <div class="author-row">
+                    <div class="author-avatar-wrapper" onclick="startChat('{{ news.username }}')">
+                        {% if news.author_avatar_url %}
+                        <img class="author-avatar"
+                             src="{{ news.author_avatar_url }}"
+                             alt="{{ news.nickname }}的头像"
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<i class=\'fas fa-user-circle\' style=\'font-size:48px; color:#94a3b8;\'></i>';">
+                        {% else %}
+                        <i class="fas fa-user-circle" style="font-size:48px; color:#94a3b8;"></i>
+                        {% endif %}
+                    </div>
+                    <div class="author-info">
+                        <span class="author-name">{{ news.nickname }}</span>
+                        <span class="news-time">
+                            <i class="far fa-clock"></i> {{ news.time.strftime('%Y-%m-%d %H:%M') }}
+                        </span>
+                    </div>
+                    <span class="news-type-tag {{ news.type }}">
+                        <i class="fas {% if news.type == 'real' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+                        {% if news.type == 'real' %}真实新闻{% else %}虚假新闻{% endif %}
+                    </span>
+                </div>
+
+                <h2 class="news-title">{{ news.title }}</h2>
+                <div class="news-content">{{ news.content }}</div>
+
+                <div class="news-stats">
+                    <span class="stat-item {% if news.user_liked %}liked{% endif %}">
+                        <i class="{% if news.user_liked %}fas{% else %}far{% endif %} fa-heart"></i>
+                        {{ news.like_count }}
+                    </span>
+                    <span class="stat-item">
+                        <i class="far fa-star"></i>
+                        {{ news.favorite_count }}
+                    </span>
+                    <button class="unfavorite-btn" onclick="removeFavorite({{ news.id }})">
+                        <i class="fas fa-times"></i> 取消收藏
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-favorites">
+                <i class="fas fa-star"></i>
+                <p>暂无收藏的新闻</p>
+                <small>在新闻页面点击星星图标即可收藏新闻</small>
+                <div style="margin-top: 2rem;">
+                    <a href="/news" class="go-news-btn">去浏览新闻</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function startChat(username) {
+    window.location.href = '/my_messages?user=' + username;
+}
+
+function removeFavorite(newsId) {
+    if (!confirm('确定要取消收藏这条新闻吗？')) return;
+    
+    $.ajax({
+        url: '/favorite_news',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            news_id: newsId,
+            action: 'unfavorite'
+        }),
+        success: function(response) {
+            if (response.success) {
+                // 移除新闻卡片
+                $(`.news-card[data-news-id="${newsId}"]`).fadeOut(300, function() {
+                    $(this).remove();
+                    
+                    // 如果没有新闻了，显示空状态
+                    if ($('#favorites-list .news-card').length === 0) {
+                        location.reload();
+                    }
+                });
+            } else {
+                alert(response.message || '操作失败');
+            }
+        },
+        error: function() {
+            alert('操作失败，请稍后再试');
+        }
+    });
+}
+</script>
+{% endblock %}

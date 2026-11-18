@@ -1,0 +1,570 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* ===== 全局样式重置 ===== */
+    * {
+        box-sizing: border-box;
+    }
+    body {
+        background: #f5f7fb;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* 页面主容器 */
+    .page-container {
+        padding: 2rem 2rem 3rem;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* 页面标题区域 */
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    .page-header h1 {
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: #0f1a2f;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .page-header h1 i {
+        color: #1e3b5c;
+        font-size: 2.4rem;
+    }
+    .page-header h3 {
+        font-size: 1.1rem;
+        font-weight: 400;
+        color: #5e6f88;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* 管理卡片 - 主容器 */
+    .comments-management {
+        background: white;
+        border-radius: 32px;
+        padding: 2rem 2rem 2.5rem;
+        box-shadow: 0 25px 50px -18px rgba(0,40,80,0.25);
+        border: 1px solid rgba(230,240,255,0.6);
+        backdrop-filter: blur(2px);
+        margin-top: 1.5rem;
+    }
+
+    /* 搜索栏 - 现代设计 */
+    .search-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .search-box {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+        background: #f8fafd;
+        padding: 0.3rem;
+        border-radius: 60px;
+        border: 1px solid #e2ecf9;
+    }
+    .search-box input {
+        padding: 0.7rem 1.5rem;
+        width: 320px;
+        border: none;
+        background: transparent;
+        font-size: 0.95rem;
+        color: #1e2f4a;
+    }
+    .search-box input:focus {
+        outline: none;
+    }
+    .search-box input::placeholder {
+        color: #9aafc9;
+    }
+    .search-box button {
+        padding: 0.7rem 2rem;
+        background: #1e3b5c;
+        color: white;
+        border: none;
+        border-radius: 60px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 8px 18px -8px #1e3b5c;
+    }
+    .search-box button:hover {
+        background: #0f2740;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px -10px #1e3b5c;
+    }
+    .search-box button i {
+        font-size: 1.1rem;
+    }
+
+    /* 删除选中按钮 */
+    .delete-selected-btn {
+        background: #dc3545;
+        color: white;
+        padding: 0.7rem 2rem;
+        border: none;
+        border-radius: 60px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 8px 18px -8px #dc3545b0;
+    }
+    .delete-selected-btn:hover {
+        background: #b02a37;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px -10px #b02a37;
+    }
+    .delete-selected-btn i {
+        font-size: 1.1rem;
+    }
+
+    /* 表格容器 - 卡片内表格 */
+    .table-wrapper {
+        overflow-x: auto;
+        margin: 1.5rem 0 2rem;
+        border-radius: 24px;
+        background: #ffffff;
+        border: 1px solid #edf2f9;
+    }
+    .comments-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.95rem;
+    }
+    .comments-table thead th {
+        background: #f8fbfe;
+        color: #1e3b5c;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 1rem 1.2rem;
+        border-bottom: 2px solid #e6eefc;
+        white-space: nowrap;
+    }
+    .comments-table tbody tr {
+        transition: all 0.15s;
+        border-bottom: 1px solid #f0f5fd;
+    }
+    .comments-table tbody tr:hover {
+        background: #f5faff;
+    }
+    .comments-table td {
+        padding: 1rem 1.2rem;
+        color: #1f2b3a;
+        border-bottom: 1px solid #eef4fc;
+    }
+    /* 评论内容区域 - 优雅截断 */
+    .comment-content {
+        max-width: 350px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #334155;
+    }
+    /* 复选框样式 */
+    .checkbox-custom {
+        width: 18px;
+        height: 18px;
+        accent-color: #1e3b5c;
+        cursor: pointer;
+    }
+
+    /* 分页组件 - 现代圆角设计 */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 2rem 0 1rem;
+        flex-wrap: wrap;
+    }
+    .pagination button {
+        min-width: 40px;
+        height: 40px;
+        padding: 0 0.8rem;
+        border: 1px solid #e2ecf9;
+        background: white;
+        color: #4f627a;
+        border-radius: 40px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .pagination button:hover:not(:disabled) {
+        background: #eaf3ff;
+        border-color: #1e3b5c40;
+        color: #1e3b5c;
+        transform: translateY(-2px);
+    }
+    .pagination button.active {
+        background: #1e3b5c;
+        border-color: #1e3b5c;
+        color: white;
+        box-shadow: 0 8px 14px -8px #1e3b5c;
+    }
+    .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f1f5f9;
+    }
+
+    /* 空状态美化 */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #8f9fb1;
+        font-size: 1rem;
+    }
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+
+    /* 时间戳样式 */
+    .time-cell {
+        white-space: nowrap;
+        color: #5e6f88;
+        font-size: 0.9rem;
+    }
+
+
+    /* 返回按钮 */
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 22px;
+        background: white;
+        border: 1.5px solid #d5dde8;
+        border-radius: 14px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #3b5068;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        white-space: nowrap;
+    }
+    .btn-back:hover {
+        border-color: #1e3b5c;
+        color: #1e3b5c;
+        background: #f0f5fc;
+        transform: translateX(-3px);
+        box-shadow: 0 4px 14px rgba(30,59,92,0.12);
+    }
+    .btn-back i { font-size: 0.85rem; transition: transform 0.2s; }
+    .btn-back:hover i { transform: translateX(-3px); }
+    .page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+    /* 小屏适配 */
+    @media (max-width: 768px) {
+        .page-container {
+            padding: 1rem;
+        }
+        .search-section {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .search-box {
+            width: 100%;
+        }
+        .search-box input {
+            width: 1fr;
+            flex: 1;
+        }
+        .delete-selected-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        .comments-table td, .comments-table th {
+            padding: 0.8rem;
+        }
+        .comment-content {
+            max-width: 200px;
+        }
+    }
+</style>
+
+<!-- 引入Font Awesome图标库 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<div class="page-container">
+    <!-- 页面标题区域 (完全保留原文字) -->
+    <div class="page-header">
+        <div>
+        <h1>
+            <i class="fas fa-comments"></i> 评论管理
+        </h1>
+        <h3>管理系统所有评论，支持查询和删除评论。</h3>
+    </div>
+        <a href="/admin" class="btn-back"><i class="fas fa-arrow-left"></i> 返回控制面板</a>
+    </div>
+
+    <!-- 管理卡片 -->
+    <div class="comments-management">
+        <!-- 搜索和删除区域 -->
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="输入评论内容或用户名查询">
+                <button onclick="searchComments()">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+            </div>
+            <button id="deleteSelectedBtn" class="delete-selected-btn" onclick="deleteSelectedComments()">
+                <i class="fas fa-trash-alt"></i> 删除选中评论
+            </button>
+        </div>
+
+        <!-- 表格容器 -->
+        <div class="table-wrapper">
+            <table class="comments-table" id="commentsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAll" class="checkbox-custom" onclick="toggleSelectAll()"></th>
+                        <th>ID</th>
+                        <th>评论内容</th>
+                        <th>用户名</th>
+                        <th>新闻ID</th>
+                        <th>父评论ID</th>
+                        <th>评论时间</th>
+                    </tr>
+                </thead>
+                <tbody id="commentsBody">
+                    <!-- 评论内容由JavaScript动态生成 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页组件 -->
+        <div class="pagination" id="pagination">
+            <!-- 分页按钮由JavaScript动态生成 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1;
+    const pageSize = 15;
+    let selectedComments = [];
+
+    // 页面加载时获取评论数据
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchComments();
+    });
+
+    // 获取评论数据
+    function fetchComments() {
+        const searchText = document.getElementById('searchInput').value.trim();
+
+        fetch(`/admin/comments/data?page=${currentPage}&search=${encodeURIComponent(searchText)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderComments(data.rows);
+                    renderPagination(data.total);
+                } else {
+                    alert('获取评论数据失败: ' + (data.message || '未知错误'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('获取评论数据失败');
+            });
+    }
+
+    // 渲染评论列表
+    function renderComments(comments) {
+        const tbody = document.getElementById('commentsBody');
+        tbody.innerHTML = '';
+        selectedComments = []; // 清空选中评论
+        document.getElementById('selectAll').checked = false; // 重置全选
+
+        if (comments.length === 0) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td colspan="7" class="empty-state"><i class="fas fa-inbox"></i><br>没有找到评论</td>';
+            tbody.appendChild(tr);
+            return;
+        }
+
+        comments.forEach(comment => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" class="checkbox-custom" data-id="${comment.id}" onclick="toggleCommentSelection(${comment.id})"></td>
+                <td><span style="font-weight:500;">${comment.id}</span></td>
+                <td class="comment-content" title="${escapeHtml(comment.content)}">${escapeHtml(comment.content)}</td>
+                <td><i class="fas fa-user-circle" style="color:#6b7f9a; margin-right:5px;"></i>${escapeHtml(comment.username)}</td>
+                <td><span class="badge" style="background:#eef3f8; padding:0.3rem 0.8rem; border-radius:40px;">${comment.news_id}</span></td>
+                <td>${comment.pid ? comment.pid : '<span style="color:#9aafc9;">无</span>'}</td>
+                <td class="time-cell"><i class="far fa-clock" style="margin-right:5px;"></i>${new Date(comment.time).toLocaleString()}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // HTML转义
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return String(unsafe)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // 渲染分页
+    function renderPagination(total) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        const totalPages = Math.ceil(total / pageSize);
+        if (totalPages <= 1) return; // 只有一页时不显示分页
+
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        // 上一页按钮
+        const prevBtn = document.createElement('button');
+        prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchComments();
+            }
+        };
+        pagination.appendChild(prevBtn);
+
+        // 页码按钮
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            if (i === currentPage) {
+                pageBtn.classList.add('active');
+            }
+            pageBtn.onclick = () => {
+                currentPage = i;
+                fetchComments();
+            };
+            pagination.appendChild(pageBtn);
+        }
+
+        // 下一页按钮
+        const nextBtn = document.createElement('button');
+        nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                fetchComments();
+            }
+        };
+        pagination.appendChild(nextBtn);
+    }
+
+    // 搜索评论
+    function searchComments() {
+        currentPage = 1;
+        fetchComments();
+    }
+
+    // 全选/取消全选
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll').checked;
+        const checkboxes = document.querySelectorAll('#commentsBody input[type="checkbox"]');
+
+        selectedComments = [];
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAll;
+            const commentId = parseInt(checkbox.dataset.id);
+            if (selectAll) {
+                selectedComments.push(commentId);
+            }
+        });
+    }
+
+    // 切换单个评论选择
+    function toggleCommentSelection(commentId) {
+        const index = selectedComments.indexOf(commentId);
+        if (index === -1) {
+            selectedComments.push(commentId);
+        } else {
+            selectedComments.splice(index, 1);
+        }
+
+        // 更新全选复选框状态
+        const checkboxes = document.querySelectorAll('#commentsBody input[type="checkbox"]');
+        const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(checkbox => checkbox.checked);
+        document.getElementById('selectAll').checked = allChecked;
+    }
+
+    // 删除选中评论
+    function deleteSelectedComments() {
+        if (selectedComments.length === 0) {
+            alert('请至少选择一条评论');
+            return;
+        }
+
+        if (confirm(`确定要删除选中的 ${selectedComments.length} 条评论吗？`)) {
+            fetch('/admin/comments/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    commentIds: selectedComments
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('评论删除成功');
+                    fetchComments();
+                } else {
+                    alert('删除失败: ' + (data.message || '未知错误'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除失败');
+            });
+        }
+    }
+
+    // 按回车键触发搜索
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchComments();
+        }
+    });
+</script>
+{% endblock %}

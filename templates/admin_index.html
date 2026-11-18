@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+{% extends "layout.html" %}
+
+{% block head %}
+    <title>明辨：管理员控制面板</title>
+    <style>
+        /* ===== 保留原管理员页面的核心卡片布局，但进行现代美化 ===== */
+        .admin-dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px 60px;
+        }
+
+        /* 欢迎区域 + 图片，重新设计为优雅的卡片横幅 */
+        .welcome-hero {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #ffffff 0%, #f2f8ff 100%);
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -8px rgba(18, 66, 101, 0.15);
+            padding: 40px 50px;
+            margin-bottom: 60px;
+            border: 1px solid rgba(43, 108, 163, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .welcome-hero:hover {
+            box-shadow: 0 30px 45px -12px rgba(26, 73, 129, 0.25);
+        }
+
+        .welcome-text {
+            flex: 1 1 50%;
+            padding-right: 40px;
+        }
+
+        .welcome-text h1 {
+            font-size: 3.2rem;
+            font-weight: 700;
+            background: linear-gradient(145deg, #0a2f4d, #1A4981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .welcome-text h3 {
+            font-size: 1.6rem;
+            font-weight: 450;
+            color: #1f405e;
+            line-height: 1.7;
+            margin-bottom: 0;
+            background: rgba(255,255,255,0.7);
+            padding: 20px 28px;
+            border-radius: 24px;
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(43,108,163,0.2);
+            box-shadow: 0 8px 16px -8px rgba(0,32,64,0.2);
+        }
+
+        .hero-image {
+            flex: 0 0 300px;
+            text-align: center;
+        }
+
+        .hero-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -10px rgba(26, 73, 129, 0.4);
+            transition: transform 0.5s ease;
+            border: 4px solid white;
+        }
+
+        .hero-image img:hover {
+            transform: scale(1.02) rotate(1deg);
+        }
+
+        /* 功能卡片网格 — 使用grid保证卡片严格等高、等宽 */
+        .icon-boxes {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-top: 25px;
+        }
+
+        .icon-box {
+            background: #ffffff;
+            border-radius: 32px;
+            padding: 40px 25px 35px;
+            box-shadow: 0 20px 35px -14px rgba(26, 73, 129, 0.15);
+            transition: all 0.25s ease-in-out;
+            border: 1px solid rgba(43, 108, 163, 0.1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            /* 添加极浅的微纹理，丰富背景 */
+            background-image: radial-gradient(circle at 30% 40%, rgba(43,108,163,0.02) 0%, transparent 40%);
+        }
+
+        .icon-box::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 10px;
+            height: 100%;
+            background: linear-gradient(135deg, #1A4981, #2b6ca3);
+            border-radius: 32px 0 0 32px;
+            transition: width 0.2s ease;
+        }
+
+        .icon-box:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 45px -12px #1A4981;
+            border-color: rgba(43, 108, 163, 0.3);
+        }
+
+        .icon-box:hover::before {
+            width: 14px;
+        }
+
+        /* 图标样式 — 新增，使卡片视觉更饱满 */
+        .card-icon {
+            font-size: 3.2rem;
+            color: #1A4981;
+            margin-bottom: 20px;
+            text-align: center;
+            opacity: 0.9;
+            transition: transform 0.2s;
+        }
+
+        .icon-box:hover .card-icon {
+            transform: scale(1.05);
+            color: #2b6ca3;
+        }
+
+        .icon-box .title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 15px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #1A4981, #0f3a5a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .icon-box:hover .title {
+            background: none;
+            -webkit-text-fill-color: #2b6ca3;
+        }
+
+        .icon-box .description {
+            color: #1f3d5a;
+            font-size: 1.3rem;
+            font-weight: 400;
+            line-height: 1.7;
+            margin-bottom: 0;
+            padding-left: 15px;
+            padding-right: 15px;
+            border-left: 3px solid rgba(43, 108, 163, 0.25);
+            padding-top: 8px;
+            flex-grow: 1;          /* 让描述区域撑高，保证卡片等高 */
+            text-align: left;
+        }
+
+        /* 未读消息徽章样式 - 仅用于用户认证卡片 */
+        .badge-pending {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 8px;
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            -webkit-background-clip: padding-box;
+            background-clip: padding-box;
+            -webkit-text-fill-color: white;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 600;
+            border-radius: 30px;
+            box-shadow: 0 4px 8px rgba(255, 71, 87, 0.3);
+            animation: pulse 2s infinite;
+            border: 2px solid white;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 71, 87, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
+            }
+        }
+
+        /* 响应式：小于992px时变为2列 */
+        @media (max-width: 992px) {
+            .icon-boxes {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .welcome-hero {
+                flex-direction: column;
+                text-align: center;
+                padding: 35px 30px;
+            }
+            .welcome-text {
+                padding-right: 0;
+                margin-bottom: 30px;
+            }
+            .hero-image {
+                flex-basis: auto;
+                max-width: 280px;
+            }
+            .welcome-text h1 {
+                font-size: 2.8rem;
+            }
+            .welcome-text h3 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* 小于576px时变为1列 */
+        @media (max-width: 576px) {
+            .icon-boxes {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 完全隐藏任何潜在的多余元素 */
+        .extra-tools, .admin-stats, .stat-card {
+            display: none;
+        }
+
+        .container-fluid {
+            padding-left: 0;
+            padding-right: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+{# 最安全的默认值设置 - 确保变量始终存在 #}
+    {% if pending_experts_count is undefined %}
+        {% set pending_experts_count = 0 %}
+    {% endif %}
+    <div class="admin-dashboard">
+        <!-- 欢迎区域 + 图片 (保留原有文字和图片) -->
+        <div class="welcome-hero">
+            <div class="welcome-text">
+                <h1>管理员控制面板</h1>
+                <h3>欢迎回来，{{ session['username'] }}！这里是系统管理控制中心，您可以管理新闻、用户评论以及查看系统统计数据。</h3>
+            </div>
+            <div class="hero-image">
+                <img src="/static/img/index.jpeg" alt="Admin Dashboard" loading="lazy">
+            </div>
+        </div>
+
+        <!-- 功能卡片网格 — 完全保留原四个入口及文字描述，仅添加图标增强视觉 -->
+        <div class="icon-boxes">
+            <!-- 用户管理卡片 -->
+            <div class="icon-box" onclick="window.location.href='/admin/query'">
+                <div class="card-icon"><i class="fas fa-users-cog"></i></div>
+                <h3 class="title">用户管理</h3>
+                <p class="description">管理系统用户，查找、删除用户账号。</p>
+            </div>
+
+            <!-- 新闻辟谣管理卡片 -->
+            <div class="icon-box" onclick="window.location.href='/admin/news_and_reports'">
+                <div class="card-icon"><i class="fas fa-newspaper"></i></div>
+                <h3 class="title">新闻辟谣管理</h3>
+                <p class="description">查看、浏览所有新闻辟谣文章，删除违规的新闻辟谣文章。</p>
+            </div>
+
+            <!-- 评论管理卡片 -->
+            <div class="icon-box" onclick="window.location.href='/admin/comments'">
+                <div class="card-icon"><i class="fas fa-comments"></i></div>
+                <h3 class="title">评论管理</h3>
+                <p class="description">查看和管理用户评论，删除不当言论。</p>
+            </div>
+
+            <!-- 用户认证卡片 -->
+            <div class="icon-box" onclick="window.location.href='/admin/experts'">
+                <div class="card-icon"><i class="fas fa-user-check"></i></div>
+                <h3 class="title">
+                    用户认证
+                    {% if pending_experts_count > 0 %}
+                        <span class="badge-pending">{{ pending_experts_count }}</span>
+                    {% endif %}
+                </h3>
+                <p class="description">管理专家用户认证，审核认证申请。</p>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        $(document).ready(function() {
+            console.log('管理员面板已加载（仅用户认证显示待审核数量）');
+            
+            // 如果需要定时刷新用户认证的待审核数量
+            function refreshExpertCount() {
+                $.ajax({
+                    url: '/admin/pending_experts_count',
+                    method: 'GET',
+                    success: function(data) {
+                        if (data.success) {
+                            var $expertCard = $('.icon-box').last(); // 用户认证是最后一个卡片
+                            var $title = $expertCard.find('.title');
+                            var $badge = $title.find('.badge-pending');
+                            
+                            if (data.count > 0) {
+                                if ($badge.length) {
+                                    $badge.text(data.count);
+                                } else {
+                                    $title.append('<span class="badge-pending">' + data.count + '</span>');
+                                }
+                            } else {
+                                $badge.remove();
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 可选：每60秒刷新一次
+            // setInterval(refreshExpertCount, 60000);
+        });
+    </script>
+{% endblock %}

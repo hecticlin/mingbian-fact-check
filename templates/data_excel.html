@@ -1,0 +1,1889 @@
+{% extends "layout.html" %}
+
+{% block head %}
+{{ super() }}
+<!-- 引入 jQuery, ECharts, Font Awesome -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<!-- 自定义样式：现代UI设计 -->
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+
+    body {
+        background: linear-gradient(135deg, #eef2f9 0%, #f0f4f9 50%, #e8eef8 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .container-fluid {
+        max-width: 1600px;
+        padding: 24px 32px;
+    }
+
+    /* 页面标题区域 */
+    .page-header {
+        background: linear-gradient(135deg, #ffffff, #f8faff);
+        padding: 28px 32px;
+        border-radius: 28px;
+        box-shadow: 0 10px 30px -10px rgba(0,20,50,0.08);
+        margin-bottom: 28px;
+        border: 1px solid rgba(220, 230, 245, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        backdrop-filter: blur(2px);
+        position: relative;
+        overflow: hidden;
+    }
+    .page-header::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #2563eb, #7c3aed, #2563eb);
+        background-size: 200% 100%;
+        animation: headerShine 3s ease infinite;
+    }
+    @keyframes headerShine { 0%,100%{background-position:0% 0%} 50%{background-position:100% 0%} }
+
+    .header-left h2 {
+        font-weight: 700;
+        color: #0a1a2f;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px 0;
+        font-size: 32px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .header-left h2 i {
+        color: #2563eb;
+        font-size: 2rem;
+        background: linear-gradient(135deg, #2563eb20, #2563eb05);
+        padding: 10px;
+        border-radius: 18px;
+    }
+
+    .header-left .subtitle {
+        color: #5f6f8a;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .header-right {
+        display: flex;
+        gap: 12px;
+    }
+
+    .time-badge {
+        background: #eef3fc;
+        padding: 8px 16px;
+        border-radius: 40px;
+        font-size: 0.9rem;
+        color: #1e3b5c;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        border: 1px solid #d9e6f5;
+    }
+
+    .time-badge i {
+        color: #3b7cbf;
+    }
+
+    /* 统计卡片网格 */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 22px;
+        margin-bottom: 28px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 28px;
+        padding: 24px;
+        box-shadow: 0 12px 30px -8px rgba(0,30,60,0.08);
+        border: 1px solid rgba(220, 230, 245, 0.7);
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 35px -10px rgba(37, 99, 235, 0.15);
+        border-color: #2563eb30;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb, #60a5fa);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .stat-card:hover::before {
+        opacity: 1;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        background: #eef3fc;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .stat-icon i {
+        font-size: 24px;
+        color: #2563eb;
+    }
+
+    .stat-content h3 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #0a1a2f;
+        margin: 0 0 4px 0;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        color: #5f6f8a;
+        font-size: 0.9rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .stat-label i {
+        font-size: 0.85rem;
+        color: #8a9bb5;
+    }
+
+    /* 图表区域 */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        margin-bottom: 28px;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 28px;
+        padding: 24px;
+        box-shadow: 0 12px 30px -8px rgba(0,30,60,0.08);
+        border: 1px solid rgba(220, 230, 245, 0.7);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        flex-shrink: 0;
+    }
+
+    .chart-header h4 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1e2f47;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .chart-header h4 i {
+        color: #2563eb;
+        font-size: 1.4rem;
+    }
+
+    .chart-badge {
+        background: #eef3fc;
+        padding: 4px 12px;
+        border-radius: 40px;
+        font-size: 0.8rem;
+        color: #1e3b5c;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .chart-container {
+        width: 100%;
+        flex: 1;
+        min-height: 320px;
+    }
+
+    /* 趋势切换按钮组 */
+    .trend-toggle-group {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin: 8px 0 16px 0;
+        padding: 4px;
+        background: #f0f5fa;
+        border-radius: 48px;
+        border: 1px solid #e2eaf5;
+        align-self: center;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .trend-toggle-btn {
+        padding: 8px 20px;
+        border: none;
+        background: transparent;
+        border-radius: 40px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #5f6f8a;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .trend-toggle-btn i {
+        font-size: 1rem;
+        transition: transform 0.2s;
+    }
+
+    .trend-toggle-btn:hover {
+        color: #1e3b5c;
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .trend-toggle-btn.active {
+        background: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .trend-toggle-btn.real.active i {
+        color: #31b48d;
+    }
+
+    .trend-toggle-btn.fake.active i {
+        color: #f46b6b;
+    }
+
+    .trend-toggle-btn.accuracy.active i {
+        color: #3c7ed9;
+    }
+
+    .trend-toggle-btn.active i {
+        transform: scale(1.1);
+    }
+
+    /* 表格区域 */
+    .table-section {
+        background: white;
+        border-radius: 28px;
+        padding: 24px;
+        box-shadow: 0 12px 30px -8px rgba(0,30,60,0.08);
+        border: 1px solid rgba(220, 230, 245, 0.7);
+        margin-top: 8px;
+    }
+
+    .table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .table-header h4 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1e2f47;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .table-header h4 i {
+        color: #2563eb;
+        font-size: 1.4rem;
+    }
+
+    .news-count-badge {
+        background: #eef3fc;
+        padding: 4px 12px;
+        border-radius: 40px;
+        font-size: 0.85rem;
+        color: #1e3b5c;
+        margin-left: 12px;
+        font-weight: 500;
+    }
+
+    /* 标签切换组 */
+    .tab-group {
+        display: flex;
+        gap: 8px;
+        background: #f0f5fa;
+        padding: 4px;
+        border-radius: 60px;
+        border: 1px solid #e2eaf5;
+    }
+
+    .tab-btn {
+        padding: 8px 24px;
+        border: none;
+        background: transparent;
+        border-radius: 40px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #5f6f8a;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tab-btn i {
+        font-size: 1rem;
+    }
+
+    .tab-btn:hover {
+        color: #1e3b5c;
+        background: #ffffff80;
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: #2563eb;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+    }
+
+    /* 表格样式 */
+    .table-wrapper {
+        overflow-x: auto;
+        border-radius: 20px;
+        background: #f8fafd;
+        border: 1px solid #e2eaf5;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .modern-table {
+        width: 100%;
+        min-width: 860px;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+    }
+
+    .modern-table thead th {
+        background: #f0f5fa;
+        color: #1e3b5c;
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 16px 20px;
+        text-align: left;
+        white-space: nowrap;
+        border-bottom: 2px solid #d9e2ef;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .modern-table thead th i {
+        margin-right: 6px;
+        color: #6b7f9a;
+        font-size: 0.9rem;
+    }
+
+    .modern-table tbody tr {
+        border-bottom: 1px solid #e2eaf5;
+        transition: background 0.15s;
+    }
+
+    .modern-table tbody tr:hover {
+        background: #f0f7ff;
+    }
+
+    .modern-table tbody td {
+        padding: 16px 20px;
+        color: #1f2b3a;
+    }
+
+    .result-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 40px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-align: center;
+        min-width: 90px;
+        white-space: nowrap;
+    }
+
+    .badge-real {
+        background: #e1f7ed;
+        color: #0b6e42;
+    }
+
+    .badge-fake {
+        background: #fee9e7;
+        color: #b02a37;
+    }
+
+    .accuracy-cell {
+        font-weight: 600;
+        color: #2563eb;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 48px;
+        color: #8f9fb1;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.4;
+    }
+
+    /* 检测类型标签 */
+    .type-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: .74rem;
+        font-weight: 700;
+        letter-spacing: .3px;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .type-tag i { font-size: .72rem; }
+    .type-mmr { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .type-llm { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .type-std { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+    /* 统计卡片独立色彩 */
+    .stat-card.card-total .stat-icon { background: #eef3fc; }
+    .stat-card.card-total .stat-icon i { color: #2563eb; }
+    .stat-card.card-real .stat-icon { background: #e6f9f0; }
+    .stat-card.card-real .stat-icon i { color: #0d9b63; }
+    .stat-card.card-real:hover { border-color: #0d9b6330; box-shadow: 0 20px 35px -10px rgba(13,155,99,.12); }
+    .stat-card.card-real::before { background: linear-gradient(90deg, #0d9b63, #34d399); }
+    .stat-card.card-fake .stat-icon { background: #fef2f2; }
+    .stat-card.card-fake .stat-icon i { color: #dc2626; }
+    .stat-card.card-fake:hover { border-color: #dc262630; box-shadow: 0 20px 35px -10px rgba(220,38,38,.12); }
+    .stat-card.card-fake::before { background: linear-gradient(90deg, #dc2626, #f87171); }
+    .stat-card.card-acc .stat-icon { background: #fef9c3; }
+    .stat-card.card-acc .stat-icon i { color: #ca8a04; }
+    .stat-card.card-acc:hover { border-color: #ca8a0430; box-shadow: 0 20px 35px -10px rgba(202,138,4,.12); }
+    .stat-card.card-acc::before { background: linear-gradient(90deg, #ca8a04, #facc15); }
+
+    /* LLM分支手风琴 */
+    .dm-branch-accordion { border-radius: 12px; overflow: hidden; margin-bottom: 7px; border: 1px solid #e8eef7; }
+    .dm-branch-accordion-head {
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px 14px; font-size: .83rem; font-weight: 600;
+        cursor: pointer; user-select: none; transition: background .15s;
+    }
+    .dm-branch-accordion-head:hover { filter: brightness(0.97); }
+    .dm-branch-accordion-head .dm-branch-chevron {
+        margin-left: auto; font-size: .72rem; opacity: .5;
+        transition: transform .25s;
+    }
+    .dm-branch-accordion-head.expanded .dm-branch-chevron { transform: rotate(180deg); }
+    .dm-branch-accordion-body {
+        display: none; padding: 10px 14px; font-size: .84rem;
+        color: #4b5563; line-height: 1.75; background: #fff;
+        border-top: 1px solid #e8eef720;
+    }
+    .dm-branch-accordion-body.show { display: block; }
+
+    /* 加载状态 */
+    .loading-row td {
+        text-align: center;
+        padding: 48px;
+        color: #8f9fb1;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border: 3px solid #e2eaf5;
+        border-radius: 50%;
+        border-top-color: #2563eb;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* 美化后的查看按钮 */
+    .btn-view {
+        background: linear-gradient(145deg, #ffffff, #f5f9ff);
+        border: 1px solid #d0e0f5;
+        color: #2d4b75;
+        padding: 8px 18px;
+        border-radius: 40px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+        position: relative;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .btn-view::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+
+    .btn-view:hover {
+        background: linear-gradient(145deg, #2563eb, #1d4ed8);
+        border-color: #2563eb;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-view:hover::before {
+        left: 100%;
+    }
+
+    .btn-view i {
+        font-size: 0.95rem;
+        transition: transform 0.2s;
+    }
+
+    .btn-view:hover i {
+        transform: scale(1.1);
+    }
+
+    .btn-view:active {
+        transform: translateY(0);
+        box-shadow: 0 5px 10px -3px rgba(37, 99, 235, 0.4);
+    }
+
+    /* ══ 详情弹窗 ══════════════════════════════════════════════ */
+    @keyframes modalBgFade  { from{opacity:0} to{opacity:1} }
+    @keyframes modalSlideUp { from{opacity:0;transform:translateY(24px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        inset: 0;
+        background: rgba(8, 20, 40, 0.72);
+        backdrop-filter: blur(10px);
+        align-items: center;
+        justify-content: center;
+        animation: modalBgFade 0.25s ease;
+        padding: 20px;
+    }
+
+    .modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 720px;
+        max-height: 90vh;
+        overflow-y: auto;
+        background: #f4f7fc;
+        border-radius: 28px;
+        box-shadow: 0 40px 80px -20px rgba(8,20,50,.55), 0 0 0 1px rgba(255,255,255,.12) inset;
+        animation: modalSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        scrollbar-width: thin;
+        scrollbar-color: #c5d5e8 transparent;
+    }
+    .modal-content::-webkit-scrollbar { width: 5px; }
+    .modal-content::-webkit-scrollbar-thumb { background: #c5d5e8; border-radius: 10px; }
+
+    /* 弹窗顶部英雄区 */
+    .dm-hero {
+        padding: 28px 28px 22px;
+        border-radius: 28px 28px 0 0;
+        position: relative;
+        overflow: hidden;
+    }
+    .dm-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        opacity: .07;
+        background: repeating-linear-gradient(
+            45deg, transparent, transparent 24px, rgba(255,255,255,.6) 24px, rgba(255,255,255,.6) 25px
+        );
+        pointer-events: none;
+    }
+    .dm-hero-real { background: linear-gradient(135deg, #0d5c3a, #1a8a58); }
+    .dm-hero-fake { background: linear-gradient(135deg, #7f1d1d, #c0392b); }
+    .dm-hero-unk  { background: linear-gradient(135deg, #78350f, #b45309); }
+
+    .dm-verdict-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        position: relative;
+    }
+
+    .dm-verdict-text { flex: 1; }
+    .dm-verdict-label {
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.02em;
+        line-height: 1.2;
+        margin-bottom: 4px;
+    }
+    .dm-verdict-sub {
+        font-size: .88rem;
+        color: rgba(255,255,255,.75);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .dm-rate-pill {
+        background: rgba(255,255,255,.22);
+        border: 1px solid rgba(255,255,255,.3);
+        color: #fff;
+        font-size: .88rem;
+        font-weight: 700;
+        padding: 3px 12px;
+        border-radius: 30px;
+    }
+    .dm-close {
+        position: absolute;
+        right: 0; top: -4px;
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255,255,255,.18);
+        color: rgba(255,255,255,.8);
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all .2s;
+        flex-shrink: 0;
+    }
+    .dm-close:hover { background: rgba(255,255,255,.3); color: #fff; }
+
+    /* 元信息行 */
+    .dm-meta-row {
+        display: flex;
+        gap: 0;
+        background: #fff;
+        border-bottom: 1px solid #e8eef7;
+    }
+    .dm-meta-cell {
+        flex: 1;
+        padding: 14px 20px;
+        border-right: 1px solid #e8eef7;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .dm-meta-cell:last-child { border-right: none; }
+    .dm-meta-key {
+        font-size: .72rem;
+        font-weight: 600;
+        color: #8fa3be;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .dm-meta-val {
+        font-size: .9rem;
+        font-weight: 600;
+        color: #1e2f47;
+    }
+
+    /* 正文区 */
+    .dm-body { padding: 20px 24px; }
+
+    .dm-section {
+        background: #fff;
+        border-radius: 18px;
+        overflow: hidden;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 10px rgba(0,20,60,.05);
+        border: 1px solid #e4edf8;
+    }
+    .dm-section-head {
+        padding: 11px 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .82rem;
+        font-weight: 700;
+        color: #1e3b5c;
+        background: #f5f8fd;
+        border-bottom: 1px solid #e4edf8;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+    .dm-section-head i { color: #2563eb; font-size: .95rem; }
+    .dm-section-body {
+        padding: 14px 18px;
+        font-size: .92rem;
+        color: #1f2b3a;
+        line-height: 1.75;
+        word-break: break-word;
+    }
+    .dm-section-body.scrollable {
+        max-height: 200px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: inherit;
+        scrollbar-width: thin;
+        scrollbar-color: #c5d5e8 transparent;
+    }
+
+    /* 图片画廊 */
+    .dm-gallery {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 14px 18px;
+    }
+    .dm-img-wrap {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 4px 14px rgba(0,30,70,.12);
+        transition: transform .22s, box-shadow .22s;
+        cursor: zoom-in;
+    }
+    .dm-img-wrap:hover { transform: scale(1.04); box-shadow: 0 10px 28px rgba(0,30,70,.22); }
+    .dm-img-wrap img {
+        display: block;
+        width: 160px; height: 110px;
+        object-fit: cover;
+    }
+    .dm-img-wrap .dm-img-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,.4), transparent);
+        opacity: 0; transition: opacity .2s;
+        display: flex; align-items: flex-end; justify-content: center;
+        padding-bottom: 8px;
+        color: #fff; font-size: .75rem; font-weight: 600;
+    }
+    .dm-img-wrap:hover .dm-img-overlay { opacity: 1; }
+
+    /* reasoning 卡片 */
+    .dm-reasoning-header {
+        padding: 11px 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .82rem;
+        font-weight: 700;
+        color: #1e3b5c;
+        background: #f5f8fd;
+        border-bottom: 1px solid #e4edf8;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+    .dm-type-badge {
+        margin-left: auto;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .3px;
+    }
+    .dm-dim-card {
+        border-bottom: 1px solid #f0f4fb;
+        overflow: hidden;
+    }
+    .dm-dim-card:last-child { border-bottom: none; }
+    .dm-dim-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        font-size: .82rem;
+        font-weight: 700;
+        cursor: pointer;
+        user-select: none;
+        transition: background .15s;
+    }
+    .dm-dim-head:hover { background: #f8fafd; }
+    .dm-dim-score {
+        margin-left: auto;
+        font-size: .78rem;
+        font-weight: 600;
+        padding: 2px 10px;
+        border-radius: 20px;
+    }
+    .dm-dim-body {
+        padding: 0 18px 12px 18px;
+        font-size: .88rem;
+        color: #374151;
+        line-height: 1.8;
+        white-space: pre-line;
+        display: none;
+    }
+    .dm-final-box {
+        margin: 14px 18px;
+        background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        border-radius: 14px;
+        padding: 14px 16px;
+        border-left: 4px solid #2563eb;
+    }
+    .dm-final-title {
+        font-size: .78rem;
+        font-weight: 700;
+        color: #1e3b5c;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: 7px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .dm-final-text {
+        font-size: .9rem;
+        color: #1f2b3a;
+        line-height: 1.8;
+        white-space: pre-line;
+    }
+    .dm-branch-wrap { padding: 0 18px 14px; }
+    .dm-branch-stats {
+        font-size: .78rem;
+        color: #8fa3be;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+    }
+    .dm-branch {
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 7px;
+        border: 1px solid #e8eef7;
+    }
+    .dm-branch-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 13px;
+        font-size: .83rem;
+        font-weight: 600;
+    }
+    .dm-branch-body {
+        padding: 7px 13px 9px;
+        font-size: .83rem;
+        color: #4b5563;
+        line-height: 1.7;
+        background: #fff;
+        border-top: 1px solid;
+    }
+    .dm-branch-disagree {
+        padding: 6px 13px 8px;
+        font-size: .78rem;
+        color: #7b4b00;
+        background: #fff8f0;
+        border-top: 1px solid #fed7aa;
+    }
+    .dm-evidence {
+        margin: 4px 18px 14px;
+        background: #f8faff;
+        border-radius: 12px;
+        padding: 10px 14px;
+        border-left: 3px solid #2563eb;
+    }
+    .dm-evidence-title {
+        font-size: .75rem;
+        font-weight: 700;
+        color: #1e3b5c;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .dm-evidence-item {
+        font-size: .8rem;
+        color: #4b5563;
+        padding: 4px 0;
+        border-bottom: 1px solid #e8eef7;
+        line-height: 1.6;
+    }
+    .dm-evidence-item:last-child { border-bottom: none; }
+
+    /* 加载骨架 */
+    .dm-loading {
+        padding: 24px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #8fa3be;
+        font-size: .88rem;
+    }
+    .dm-spinner {
+        width: 18px; height: 18px;
+        border: 2.5px solid #e2eaf5;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+        flex-shrink: 0;
+    }
+
+    /* 弹窗底部操作栏 */
+    .dm-footer {
+        padding: 14px 24px 18px;
+        display: flex;
+        justify-content: flex-end;
+    }
+    .dm-btn-close {
+        background: #1e3b5c;
+        color: #fff;
+        border: none;
+        border-radius: 30px;
+        padding: 10px 28px;
+        font-size: .9rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: all .2s;
+        box-shadow: 0 4px 14px rgba(30,59,92,.3);
+    }
+    .dm-btn-close:hover {
+        background: #2563eb;
+        box-shadow: 0 6px 18px rgba(37,99,235,.4);
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题区域 -->
+    <div class="page-header">
+        <div class="header-left">
+            <h2>
+                <i class="fas fa-chart-pie"></i>
+                新闻检测数据报表
+            </h2>
+            <div class="subtitle">
+                <i class="fas fa-chart-line"></i>
+                基于历史检测数据的统计分析 · 实时洞察新闻态势
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="time-badge">
+                <i class="fas fa-calendar-alt"></i>
+                数据更新于最近30天
+            </div>
+            <div class="time-badge">
+                <i class="fas fa-sync-alt"></i>
+                实时更新
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-grid">
+        <div class="stat-card card-total">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="total-detections">0</h3>
+                <div class="stat-label">
+                    <i class="fas fa-database"></i>
+                    累计检测总数
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card card-real">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="real-news">0</h3>
+                <div class="stat-label">
+                    <i class="fas fa-newspaper"></i>
+                    真实新闻
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card card-fake">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="fake-news">0</h3>
+                <div class="stat-label">
+                    <i class="fas fa-ban"></i>
+                    虚假新闻
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card card-acc">
+            <div class="stat-icon">
+                <i class="fas fa-bullseye"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="avg-accuracy">0%</h3>
+                <div class="stat-label">
+                    <i class="fas fa-chart-line"></i>
+                    平均准确率
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="charts-grid">
+        <!-- 分布饼图 -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>
+                    <i class="fas fa-chart-pie"></i>
+                    检测结果分布
+                </h4>
+                <span class="chart-badge">
+                    <i class="fas fa-balance-scale"></i>
+                    真实 vs 虚假
+                </span>
+            </div>
+            <div class="chart-container" id="result-pie-chart"></div>
+        </div>
+
+        <!-- 趋势折线图 -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h4>
+                    <i class="fas fa-chart-line"></i>
+                    检测趋势分析
+                </h4>
+                <span class="chart-badge">
+                    <i class="fas fa-calendar-week"></i>
+                    近30日趋势
+                </span>
+            </div>
+            <!-- 可切换按钮组 - 点击显示/隐藏对应的数据系列 -->
+            <div class="trend-toggle-group">
+                <button class="trend-toggle-btn real active" data-series="real">
+                    <i class="fas fa-check-circle"></i>
+                    真实新闻
+                </button>
+                <button class="trend-toggle-btn fake active" data-series="fake">
+                    <i class="fas fa-exclamation-circle"></i>
+                    虚假新闻
+                </button>
+                <button class="trend-toggle-btn accuracy active" data-series="accuracy">
+                    <i class="fas fa-chart-line"></i>
+                    准确率
+                </button>
+            </div>
+            <div class="chart-container" id="daily-trend-chart"></div>
+        </div>
+    </div>
+
+    <!-- 新闻列表表格区域 -->
+    <div class="table-section">
+        <div class="table-header">
+            <h4>
+                <i class="fas fa-list-ul"></i>
+                新闻检测明细
+                <span id="news-count" class="news-count-badge">0 条</span>
+            </h4>
+            <!-- 标签切换组 -->
+            <div class="tab-group">
+                <button class="tab-btn active" data-filter="all">
+                    <i class="fas fa-globe"></i>
+                    全部
+                </button>
+                <button class="tab-btn" data-filter="real">
+                    <i class="fas fa-check-circle" style="color:#31b48d;"></i>
+                    真实新闻
+                </button>
+                <button class="tab-btn" data-filter="fake">
+                    <i class="fas fa-exclamation-circle" style="color:#f46b6b;"></i>
+                    虚假新闻
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-hashtag"></i> ID</th>
+                        <th><i class="fas fa-calendar-alt"></i> 检测时间</th>
+                        <th><i class="fas fa-heading"></i> 新闻标题</th>
+                        <th><i class="fas fa-tag"></i> 检测结果</th>
+                        <th><i class="fas fa-percent"></i> 准确率</th>
+                        <th><i class="fas fa-microchip"></i> 类型</th>
+                        {% if session.get('user_type') == 'admin' %}
+                        <th><i class="fas fa-user"></i> 检测用户</th>
+                        {% endif %}
+                        <th><i class="fas fa-cog"></i> 操作</th>
+                    </tr>
+                </thead>
+                <tbody id="news-table-body">
+                    <tr class="loading-row">
+                        <td colspan="{% if session.get('user_type') == 'admin' %}8{% else %}7{% endif %}">
+                            <div class="loading-spinner"></div>
+                            <div>加载数据中...</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 查看详情弹窗 -->
+<div id="viewDetailModal" class="modal" onclick="if(event.target===this)closeModal('viewDetailModal')">
+    <div class="modal-content" id="dm-box">
+        <!-- 由 JS 动态写入 -->
+    </div>
+</div>
+
+<script>
+let allNewsData = []; // 存储所有新闻数据
+var _isAdmin = {{ 'true' if session.get('user_type') == 'admin' else 'false' }};
+var _colSpan = _isAdmin ? 8 : 7;
+let originalChartData = {
+    dates: [],
+    real_counts: [],
+    fake_counts: [],
+    accuracy_rates: []
+};
+let currentChart = null;
+let activeSeries = {
+    real: true,
+    fake: true,
+    accuracy: true
+}; // 记录当前显示的数据系列
+
+$(document).ready(function() {
+    // 设置当前导航栏激活状态
+    $('#li_6').addClass('active');
+
+    // 获取数据并渲染
+    fetchDataAndRenderCharts();
+
+    // 标签切换事件（新闻表格筛选）
+    $('.tab-btn').click(function() {
+        $('.tab-btn').removeClass('active');
+        $(this).addClass('active');
+
+        const filter = $(this).data('filter');
+        filterNewsTable(filter);
+    });
+
+    // 趋势图切换按钮事件 - 点击切换显示/隐藏
+    $('.trend-toggle-btn').click(function() {
+        const series = $(this).data('series');
+
+        // 切换按钮的active状态
+        $(this).toggleClass('active');
+
+        // 更新activeSeries状态
+        activeSeries[series] = $(this).hasClass('active');
+
+        console.log("按钮点击:", series, "状态:", activeSeries[series]);
+        console.log("当前activeSeries:", activeSeries);
+
+        // 更新图表显示（带动画）
+        updateTrendChartWithAnimation();
+    });
+});
+
+// 获取数据并渲染图表
+function fetchDataAndRenderCharts() {
+    console.log("开始获取图表数据...");
+    $.ajax({
+        url: '/api/data_excel',
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            console.log("API响应:", response);
+            if (response && response.success) {
+                console.log("数据获取成功，开始更新UI");
+
+                // 更新概览卡片
+                $('#total-detections').text(response.total_detections || 0);
+                $('#real-news').text(response.real_news_count || 0);
+                $('#fake-news').text(response.fake_news_count || 0);
+                $('#avg-accuracy').text((response.avg_accuracy || 0) + '%');
+
+                // 保存原始图表数据
+                if (response.daily_trend) {
+                    originalChartData = {
+                        dates: response.daily_trend.dates || [],
+                        real_counts: response.daily_trend.real_counts || [],
+                        fake_counts: response.daily_trend.fake_counts || [],
+                        accuracy_rates: response.daily_trend.accuracy_rates || []
+                    };
+                    console.log("趋势数据已保存:", originalChartData);
+                }
+
+                // 渲染饼图
+                renderPieChart('result-pie-chart', [
+                    { value: response.real_news_count || 0, name: '真实新闻' },
+                    { value: response.fake_news_count || 0, name: '虚假新闻' }
+                ]);
+
+                // 初始化趋势图（默认全部显示，带动画）
+                renderLineChartWithAnimation('daily-trend-chart',
+                    originalChartData.dates,
+                    originalChartData.real_counts,
+                    originalChartData.fake_counts,
+                    originalChartData.accuracy_rates
+                );
+
+                // 存储新闻数据并渲染表格
+                if (response.news_list && response.news_list.length > 0) {
+                    console.log("新闻数据条数:", response.news_list.length);
+                    allNewsData = response.news_list;
+                    $('#news-count').text(`${allNewsData.length} 条`);
+                    renderNewsTable(allNewsData);
+                } else {
+                    console.log("没有新闻数据");
+                    $('#news-count').text('0 条');
+                    renderEmptyTable();
+                }
+            } else {
+                console.error("API返回失败:", response);
+                showError(response ? response.message : '获取数据失败');
+                renderEmptyTable();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error("AJAX请求出错:", status, error);
+            console.error("响应文本:", xhr.responseText);
+            showError('请求数据出错: ' + error);
+            renderEmptyTable();
+        }
+    });
+}
+
+// 带动画更新趋势图
+function updateTrendChartWithAnimation() {
+    if (currentChart && typeof currentChart.dispose === 'function') {
+        try {
+            currentChart.dispose();
+        } catch (e) {}
+        currentChart = null;
+    }
+    renderLineChartWithAnimation(
+        'daily-trend-chart',
+        originalChartData.dates,
+        originalChartData.real_counts,
+        originalChartData.fake_counts,
+        originalChartData.accuracy_rates
+    );
+}
+
+// 渲染新闻表格
+function renderNewsTable(newsData) {
+    const tbody = $('#news-table-body');
+    tbody.empty();
+
+    if (!newsData || newsData.length === 0) {
+        renderEmptyTable();
+        return;
+    }
+
+    console.log("渲染表格，数据条数:", newsData.length);
+
+    let html = '';
+    newsData.forEach(item => {
+        const resultClass = item.detect_result === '真实新闻' ? 'badge-real' :
+                           (item.detect_result === '虚假新闻' ? 'badge-fake' : '');
+
+        let accuracy = '0.00%';
+        if (item.detect_resultrate !== undefined && item.detect_resultrate !== null) {
+            accuracy = typeof item.detect_resultrate === 'number'
+                ? item.detect_resultrate.toFixed(2) + '%'
+                : parseFloat(item.detect_resultrate).toFixed(2) + '%';
+        }
+
+        // 检测类型判断
+        var r = item.reasoning || {};
+        var detType = (r.detect_type === 'mmr') ? 'mmr' : (r.final_reason ? 'llm' : 'std');
+        var typeTag = detType === 'mmr'
+            ? '<span class="type-tag type-mmr"><i class="fas fa-photo-film"></i>图文</span>'
+            : (detType === 'llm'
+                ? '<span class="type-tag type-llm"><i class="fas fa-brain"></i>LLM</span>'
+                : '<span class="type-tag type-std"><i class="fas fa-robot"></i>标准</span>');
+
+        html += '<tr>'
+            + '<td><span style="font-weight:500;">' + escapeHtml(item.detect_id || '--') + '</span></td>'
+            + '<td><i class="far fa-calendar-alt" style="color:#8a9bb5; margin-right:6px;"></i>' + escapeHtml(item.detect_time || '未知') + '</td>'
+            + '<td><strong>' + escapeHtml(item.title || '无标题') + '</strong></td>'
+            + '<td><span class="result-badge ' + resultClass + '">' + escapeHtml(item.detect_result || '未知') + '</span></td>'
+            + '<td><span class="accuracy-cell">' + accuracy + '</span></td>'
+            + '<td>' + typeTag + '</td>';
+        if (_isAdmin) {
+            html += '<td><i class="fas fa-user-circle" style="color:#6b7f9a; margin-right:5px;"></i>' + escapeHtml(item.user_name || '未知') + '</td>';
+        }
+        html += '<td>'
+            + '<button class="btn-view" data-id="' + item.detect_id + '" onclick="openViewDetailModalById(this.dataset.id)"><i class="fas fa-eye" style="font-size:.8rem;"></i>查看</button>'
+            + '</td></tr>';
+    });
+
+    tbody.html(html);
+}
+
+// 打开查看详情模态框
+function openViewDetailModalById(id) {
+    var item = allNewsData.find(function(d){ return String(d.detect_id) === String(id); });
+    if (item) openViewDetailModal(item);
+}
+
+function openViewDetailModal(item) {
+    var rate = item.detect_resultrate
+        ? (typeof item.detect_resultrate==='number'
+            ? item.detect_resultrate.toFixed(2)+'%'
+            : parseFloat(item.detect_resultrate).toFixed(2)+'%')
+        : '0.00%';
+    var isReal = item.detect_result==='真实新闻';
+    var isFake = item.detect_result==='虚假新闻';
+    var heroClass = isReal?'dm-hero-real':isFake?'dm-hero-fake':'dm-hero-unk';
+    var vIcon     = isReal?'fa-shield-check':isFake?'fa-exclamation-circle':'fa-question-circle';
+    var vLabel    = item.detect_result || '未知';
+    var content   = (item.content||'无内容').replace(/\n/g,'<br>');
+
+    // 检测类型
+    var _r = item.reasoning || {};
+    var _dt = (_r.detect_type === 'mmr') ? 'mmr' : (_r.final_reason ? 'llm' : 'std');
+    var _dtLabel = _dt === 'mmr' ? '图文多模态' : (_dt === 'llm' ? 'LLM深度分析' : '标准检测');
+    var _dtIcon  = _dt === 'mmr' ? 'fa-photo-film' : (_dt === 'llm' ? 'fa-brain' : 'fa-robot');
+    var _dtCls   = 'type-' + _dt;
+
+    var html =
+        // ── 英雄区
+        '<div class="dm-hero '+heroClass+'">'
+        +'<div class="dm-verdict-row">'
+        +'<div class="dm-verdict-text">'
+        +'<div class="dm-verdict-label"><i class="fas '+vIcon+'" style="margin-right:10px;opacity:.9;font-size:1.4rem;vertical-align:middle;"></i>'+escapeHtml(vLabel)+'</div>'
+        +'<div class="dm-verdict-sub">'
+        +'<span class="dm-rate-pill"><i class="fas fa-bullseye" style="margin-right:4px;"></i>'+rate+'</span>'
+        +'<span><i class="far fa-clock" style="margin-right:4px;"></i>'+escapeHtml(item.detect_time||'')+'</span>'
+        +'</div></div>'
+        +'<button class="dm-close" onclick="closeModal(\'viewDetailModal\')"><i class="fas fa-times"></i></button>'
+        +'</div></div>'
+
+        // ── 元信息行（条件显示检测用户）
+        +'<div class="dm-meta-row">'
+        +'<div class="dm-meta-cell">'
+        +'<div class="dm-meta-key"><i class="fas fa-hashtag"></i>检测 ID</div>'
+        +'<div class="dm-meta-val">#'+escapeHtml(item.detect_id)+'</div>'
+        +'</div>'
+        +'<div class="dm-meta-cell">'
+        +'<div class="dm-meta-key"><i class="fas fa-microchip"></i>检测类型</div>'
+        +'<div class="dm-meta-val"><span class="type-tag '+_dtCls+'"><i class="fas '+_dtIcon+'"></i>'+_dtLabel+'</span></div>'
+        +'</div>'
+        +(_isAdmin
+            ? '<div class="dm-meta-cell">'
+              +'<div class="dm-meta-key"><i class="fas fa-user"></i>检测用户</div>'
+              +'<div class="dm-meta-val">'+escapeHtml(item.user_name||'—')+'</div>'
+              +'</div>'
+            : '')
+        +'</div>'
+
+        // ── 正文
+        +'<div class="dm-body">'
+
+        // 标题
+        +'<div class="dm-section">'
+        +'<div class="dm-section-head"><i class="fas fa-heading"></i>新闻标题</div>'
+        +'<div class="dm-section-body" style="font-weight:700;font-size:1rem;color:#0a1a2f;">'+escapeHtml(item.title||'（无标题）')+'</div>'
+        +'</div>'
+
+        // 正文
+        +'<div class="dm-section">'
+        +'<div class="dm-section-head"><i class="fas fa-align-left"></i>新闻正文</div>'
+        +'<div class="dm-section-body scrollable">'+content+'</div>'
+        +'</div>'
+
+        // 异步加载区
+        +'<div id="dm-async-'+item.detect_id+'">'
+        +'<div class="dm-loading"><div class="dm-spinner"></div>正在加载配图与分析理由...</div>'
+        +'</div>'
+
+        +'</div>'
+
+        // ── 底部
+        +'<div class="dm-footer">'
+        +'<button class="dm-btn-close" onclick="closeModal(\'viewDetailModal\')">'
+        +'<i class="fas fa-times-circle"></i>关闭</button>'
+        +'</div>';
+
+    document.getElementById('dm-box').innerHTML = html;
+    openModal('viewDetailModal');
+
+    // 异步加载完整详情
+    var asyncId = '#dm-async-'+item.detect_id;
+    $.get('/get_detection_detail/'+item.detect_id, function(resp) {
+        if (!resp.success) { $(asyncId).html(''); return; }
+        var d  = resp.detail;
+        var out = '';
+
+        // ── 配图
+        if (d.has_image && d.image_urls && d.image_urls.length>0) {
+            out += '<div class="dm-section">'
+                +'<div class="dm-section-head"><i class="fas fa-images"></i>检测配图</div>'
+                +'<div class="dm-gallery">';
+            d.image_urls.forEach(function(url) {
+                out += '<a href="'+escapeHtml(url)+'" target="_blank">'
+                    +'<div class="dm-img-wrap">'
+                    +'<img src="'+escapeHtml(url)+'" onerror="this.closest(\'a\').style.display=\'none\'">'
+                    +'<div class="dm-img-overlay"><i class="fas fa-expand-alt" style="margin-right:4px;"></i>查看原图</div>'
+                    +'</div></a>';
+            });
+            out += '</div></div>';
+        }
+
+        // ── reasoning
+        var r = d.reasoning||{};
+        var hasR = r && typeof r==='object' && Object.keys(r).length>0;
+
+        if (hasR) {
+            if (r.detect_type==='mmr') {
+                out += '<div class="dm-section">';
+                out += '<div class="dm-reasoning-header"><i class="fas fa-brain" style="color:#7c3aed;"></i>检测分析理由'
+                    +'<span class="dm-type-badge" style="background:#f5f3ff;color:#6d28d9;">图文多模态</span></div>';
+
+                var dims = [
+                    {key:'text_check',        label:'文本真实性核查', icon:'fa-file-alt',  color:'#2563eb', bg:'#eff6ff', sbg:'#dbeafe'},
+                    {key:'image_check',       label:'图像真实性检测', icon:'fa-image',     color:'#7c3aed', bg:'#f5f3ff', sbg:'#ede9fe'},
+                    {key:'consistency_check', label:'图文一致性推理', icon:'fa-link',      color:'#0891b2', bg:'#ecfeff', sbg:'#cffafe'},
+                ];
+                dims.forEach(function(dim, i) {
+                    if (!r[dim.key]) return;
+                    var score = (r.sub_scores&&r.sub_scores[dim.key]!=null)
+                        ? (r.sub_scores[dim.key]*100).toFixed(1)+'%' : null;
+                    var uid = 'dmdim'+i+'_'+Date.now();
+                    out += '<div class="dm-dim-card">'
+                        +'<div class="dm-dim-head" style="color:'+dim.color+';background:'+dim.bg+';" onclick="var b=document.getElementById(\''+uid+'\');b.style.display=b.style.display===\'block\'?\'none\':\'block\'">'
+                        +'<i class="fas '+dim.icon+'"></i>'+dim.label;
+                    if (score) out += '<span class="dm-dim-score" style="background:'+dim.sbg+';color:'+dim.color+';">'+score+'</span>';
+                    out += '<i class="fas fa-chevron-down" style="margin-left:auto;font-size:.75rem;opacity:.5;"></i>';
+                    out += '</div><div class="dm-dim-body" id="'+uid+'">'+escapeHtml(r[dim.key])+'</div></div>';
+                });
+
+                if (r.evidence&&r.evidence.length>0) {
+                    out += '<div class="dm-evidence">'
+                        +'<div class="dm-evidence-title"><i class="fas fa-link"></i>检索参考证据</div>';
+                    r.evidence.slice(0,3).forEach(function(ev,i){
+                        if(ev) out += '<div class="dm-evidence-item">'+(i+1)+'. '+escapeHtml(ev)+'</div>';
+                    });
+                    out += '</div>';
+                }
+                out += '</div>';
+
+            } else if (r.final_reason) {
+                out += '<div class="dm-section">';
+                out += '<div class="dm-reasoning-header"><i class="fas fa-brain" style="color:#2563eb;"></i>检测分析理由'
+                    +'<span class="dm-type-badge" style="background:#eff6ff;color:#1d4ed8;">LLM深度分析</span></div>';
+
+                if (r.short_circuited&&r.short_circuit_source) {
+                    out += '<div style="padding:12px 18px;">'
+                        +'<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:#f0fff4;border:1.5px solid #48bb78;border-radius:30px;color:#276749;font-size:.85rem;font-weight:700;">'
+                        +'<i class="fas fa-bolt" style="color:#38a169;"></i>权威命中：'+escapeHtml(r.short_circuit_source)+'</div></div>';
+                }
+
+                out += '<div class="dm-final-box">'
+                    +'<div class="dm-final-title"><i class="fas fa-gavel"></i>综合判定理由</div>'
+                    +'<div class="dm-final-text">'+escapeHtml(r.final_reason)+'</div>'
+                    +'</div>';
+
+                if (r.branch_results&&r.branch_results.length>0) {
+                    var fakeCnt = r.branch_results.filter(function(b){return b.verdict==='虚假新闻';}).length;
+                    out += '<div class="dm-branch-wrap">'
+                        +'<div class="dm-branch-stats"><i class="fas fa-list-check" style="margin-right:5px;"></i>共 '
+                        +r.branch_results.length+' 个分支分析，'+fakeCnt+' 个判定为虚假</div>';
+                    r.branch_results.forEach(function(b, idx){
+                        var isF=b.verdict==='虚假新闻', isR=b.verdict==='真实新闻';
+                        var bc=isF?'#e53e3e':isR?'#38a169':'#d69e2e';
+                        var bbg=isF?'#fff5f5':isR?'#f0fff4':'#fffbeb';
+                        var bi=isF?'fa-times-circle':isR?'fa-check-circle':'fa-question-circle';
+                        var buid = 'llm_branch_'+idx+'_'+Date.now();
+                        // 手风琴头
+                        out += '<div class="dm-branch-accordion">'
+                            +'<div class="dm-branch-accordion-head" style="background:'+bbg+';color:'+bc+';" '
+                            +'onclick="var bd=document.getElementById(\''+buid+'\');var hd=this;'
+                            +'if(bd.classList.contains(\'show\')){bd.classList.remove(\'show\');hd.classList.remove(\'expanded\');}'
+                            +'else{bd.classList.add(\'show\');hd.classList.add(\'expanded\');}">'
+                            +'<i class="fas '+bi+'"></i>'
+                            +'<span>'+escapeHtml(b.branch_label)+'</span>';
+                        if (b.event_summary) {
+                            out += '<span style="font-weight:400;font-size:.78rem;opacity:.7;margin-left:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">— '+escapeHtml((b.event_summary||'').substring(0,40))+'</span>';
+                        }
+                        out += '<i class="fas fa-chevron-down dm-branch-chevron"></i>'
+                            +'</div>';
+                        // 手风琴体
+                        out += '<div class="dm-branch-accordion-body" id="'+buid+'">'
+                            +'<div style="margin-bottom:6px;">'+escapeHtml(b.reason||'')+'</div>';
+                        if (!b.agreed&&b.initial_verdict) {
+                            out += '<div style="margin-top:8px;padding:8px 12px;background:#fff8f0;border:1px solid #fed7aa;border-radius:8px;font-size:.8rem;color:#7b4b00;">'
+                                +'⚠ 两阶段分歧 — 初判: '+escapeHtml(b.initial_verdict)
+                                +' → 复核: '+escapeHtml(b.review_verdict||'')+'</div>';
+                        }
+                        out += '</div></div>';
+                    });
+                    out += '</div>';
+                }
+                out += '</div>';
+
+            } else if (r.raw) {
+                out += '<div class="dm-section">'
+                    +'<div class="dm-section-head"><i class="fas fa-brain"></i>检测理由</div>'
+                    +'<div class="dm-section-body" style="white-space:pre-line;">'+escapeHtml(r.raw)+'</div>'
+                    +'</div>';
+            }
+        }
+
+        $(asyncId).html(out||'');
+    }).fail(function(){ $(asyncId).html(''); });
+}
+
+// 打开模态框
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = 'flex';
+}
+
+// 关闭模态框
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// 点击背景关闭
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+
+// 渲染空表格
+function renderEmptyTable() {
+    const tbody = $('#news-table-body');
+    tbody.html('<tr><td colspan="' + _colSpan + '" class="empty-state"><i class="fas fa-inbox"></i><br>暂无新闻数据</td></tr>');
+}
+
+// 根据筛选条件过滤表格
+function filterNewsTable(filter) {
+    console.log("筛选条件:", filter, "数据总量:", allNewsData.length);
+
+    if (!allNewsData || allNewsData.length === 0) {
+        renderEmptyTable();
+        return;
+    }
+
+    let filteredData = [];
+    if (filter === 'all') {
+        filteredData = allNewsData;
+    } else if (filter === 'real') {
+        filteredData = allNewsData.filter(item => item.detect_result === '真实新闻');
+    } else if (filter === 'fake') {
+        filteredData = allNewsData.filter(item => item.detect_result === '虚假新闻');
+    }
+
+    console.log("筛选后数据量:", filteredData.length);
+    $('#news-count').text(`${filteredData.length} 条`);
+    renderNewsTable(filteredData);
+}
+
+// HTML转义函数
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// 显示错误信息
+function showError(message) {
+    alert("⚠️ " + message);
+    console.error(message);
+}
+
+// 渲染饼图
+function renderPieChart(domId, data) {
+    console.log("渲染饼图, domId:", domId, "数据:", data);
+
+    // 先销毁旧实例
+    const oldChart = echarts.getInstanceByDom(document.getElementById(domId));
+    if (oldChart) {
+        oldChart.dispose();
+    }
+
+    var chart = echarts.init(document.getElementById(domId));
+    var totalVal = data.reduce(function(s,d){return s+(d.value||0);},0);
+    var option = {
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}<br/>数量: {c} ({d}%)',
+            backgroundColor: '#ffffff',
+            borderColor: '#ccd9f0',
+            borderWidth: 1,
+            textStyle: { color: '#1e2f4a', fontSize: 13 },
+            padding: [10, 16],
+            borderRadius: 12,
+            shadowBlur: 12,
+            shadowColor: 'rgba(0,0,0,.08)'
+        },
+        legend: {
+            orient: 'vertical',
+            right: 20,
+            top: 'center',
+            itemGap: 16,
+            textStyle: { color: '#415a77', fontWeight: 400, fontSize: 13 },
+            itemWidth: 10,
+            itemHeight: 10,
+            formatter: function(name) {
+                var item = data.find(d => d.name === name) || { value: 0 };
+                return name + '  ' + item.value;
+            }
+        },
+        series: [
+            {
+                name: '检测结果分布',
+                type: 'pie',
+                radius: ['48%', '72%'],
+                center: ['40%', '50%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 12,
+                    borderColor: '#ffffff',
+                    borderWidth: 3
+                },
+                label: { show: false },
+                emphasis: {
+                    scale: true,
+                    scaleSize: 8,
+                    label: { show: true, fontSize: 14, fontWeight: 'bold', backgroundColor: '#ffffffee', padding: [6, 14], borderRadius: 8 }
+                },
+                data: data,
+                color: [
+                    { type: 'linear', x: 0, y: 0, x2: 1, y2: 1, colorStops: [{offset:0,color:'#34d399'},{offset:1,color:'#059669'}] },
+                    { type: 'linear', x: 0, y: 0, x2: 1, y2: 1, colorStops: [{offset:0,color:'#f87171'},{offset:1,color:'#dc2626'}] }
+                ],
+                animationDuration: 1200,
+                animationEasing: 'cubicOut'
+            }
+        ],
+        // 中央数字
+        graphic: (totalVal > 0) ? [{
+            type: 'group',
+            left: '33%',
+            top: 'middle',
+            children: [
+                { type: 'text', left: 'center', top: -14, style: { fill: '#0a1a2f', text: totalVal+'', font: 'bold 28px Inter, sans-serif', textAlign: 'center' } },
+                { type: 'text', left: 'center', top: 18, style: { fill: '#8fa3be', text: '检测总数', font: '500 13px Inter, sans-serif', textAlign: 'center' } }
+            ]
+        }] : [{
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            silent: true,
+            style: { fill: '#afc0d0', text: '暂无数据', font: '500 16px Inter, sans-serif' }
+        }]
+    };
+
+    chart.setOption(option);
+    window.addEventListener('resize', function() { chart.resize(); });
+}
+
+// 渲染折线图
+function renderLineChartWithAnimation(domId, dates, realData, fakeData, accuracyRates) {
+    var chartContainer = document.getElementById(domId);
+    if (!chartContainer) return;
+
+    const oldChart = echarts.getInstanceByDom(chartContainer);
+    if (oldChart) oldChart.dispose();
+
+    currentChart = echarts.init(chartContainer);
+    const needRotate = dates && dates.length > 7;
+
+    // 系列构建：只构建当前激活的
+    let seriesData = [];
+
+    // 真实新闻（左Y轴：index 0）
+    if (activeSeries.real && dates && dates.length) {
+        seriesData.push({
+            name: '真实新闻',
+            type: 'bar',
+            yAxisIndex: 0,
+            barWidth: 16,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#34d399'},{offset:1,color:'#059669'}]),
+                borderRadius: [8,8,0,0]
+            },
+            data: realData || [],
+            animationDuration: 800,
+            animationEasing: 'cubicOut',
+            animationDelay: idx => idx * 20
+        });
+    }
+
+    // 虚假新闻（左Y轴：index 0）
+    if (activeSeries.fake && dates && dates.length) {
+        seriesData.push({
+            name: '虚假新闻',
+            type: 'bar',
+            yAxisIndex: 0,
+            barWidth: 16,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#f87171'},{offset:1,color:'#dc2626'}]),
+                borderRadius: [8,8,0,0]
+            },
+            data: fakeData || [],
+            animationDuration: 800,
+            animationEasing: 'cubicOut',
+            animationDelay: idx => idx * 20 + 100
+        });
+    }
+
+    // 准确率（右Y轴：index 1）
+    if (activeSeries.accuracy && dates && dates.length) {
+        seriesData.push({
+            name: '准确率',
+            type: 'line',
+            yAxisIndex: 1,
+            data: accuracyRates || [],
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: { width: 3, color: '#2563eb' },
+            itemStyle: { color: '#2563eb', borderWidth: 2, borderColor: '#fff' },
+            areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(37,99,235,.15)'},{offset:1,color:'rgba(37,99,235,.01)'}]) },
+            smooth: 0.3,
+            animationDuration: 1000
+        });
+    }
+
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(37,99,235,.04)' } },
+            backgroundColor: '#fff',
+            borderColor: '#e2eaf5',
+            borderWidth: 1,
+            borderRadius: 12,
+            padding: [12, 16],
+            textStyle: { color: '#1e2f4a', fontSize: 13 },
+            extraCssText: 'box-shadow: 0 8px 24px rgba(0,20,60,.1);',
+            formatter: params => {
+                if (!params.length) return '';
+                let res = '<div style="font-weight:700;margin-bottom:6px;">' + params[0].axisValue + '</div>';
+                params.forEach(item => {
+                    if (item.seriesName === '准确率') {
+                        res += '<div style="margin:3px 0;">' + item.marker + ' ' + item.seriesName + ': <b>' + item.data + '%</b></div>';
+                    } else {
+                        res += '<div style="margin:3px 0;">' + item.marker + ' ' + item.seriesName + ': <b>' + item.data + '</b></div>';
+                    }
+                });
+                return res;
+            }
+        },
+        grid: { left: '8%', right: '10%', bottom: '12%', top: '10%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: dates || [],
+            axisLine: { lineStyle: { color: '#bdc9dc' } },
+            axisTick: { show: false },
+            axisLabel: { rotate: needRotate ? 30 : 0, color: '#4f658d' }
+        },
+        // ==================== 双 Y 轴 ====================
+        yAxis: [
+            // 左Y轴：检测数量
+            {
+                type: 'value',
+                name: '检测数量',
+                min: 0,
+                axisLabel: { color: '#546e8a' },
+                splitLine: { lineStyle: { color: '#e2e7f0', type: 'dashed' } }
+            },
+            // 右Y轴：准确率
+            {
+                type: 'value',
+                name: '准确率 %',
+                min: 0,
+                max: 100,
+                axisLabel: { formatter: '{value}%', color: '#546e8a' },
+                splitLine: { show: false }
+            }
+        ],
+        series: seriesData,
+        animation: true
+    };
+
+    // 空数据提示
+    if (!dates || !dates.length || (!seriesData.length)) {
+        option.graphic = [{
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: { fill: '#afc0d0', text: '暂无趋势数据', fontSize: 16 }
+        }];
+    }
+
+    currentChart.setOption(option, true);
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            currentChart?.resize();
+        }, 200);
+    });
+}
+</script>
+{% endblock %}

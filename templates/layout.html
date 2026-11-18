@@ -1,0 +1,434 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>明辨：虚假新闻智能检测系统</title>
+    <!-- Bootstrap 核心样式 -->
+    <link href="../static/css/bootstrap.min.css" type='text/css' rel="stylesheet">
+    <link href="../static/css/dashboard.css" rel="stylesheet">
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    {% block head %}
+    {% endblock %}
+    <style>
+        /* ===== 导航栏样式 (深蓝色调，现代美观) ===== */
+        .navbar-inverse {
+            background: linear-gradient(135deg, #0a2f4d 0%, #1A4981 100%) !important;
+            border-bottom: 2px solid #2b6ca3;
+            height: 60px;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0, 20, 40, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-inverse .navbar-brand {
+            color: white !important;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 18px 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-inverse .navbar-brand:hover {
+            transform: translateY(-1px);
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        /* 导航栏链接基本样式 */
+        .navbar-inverse .navbar-nav > li > a {
+            color: rgba(255, 255, 255, 0.9) !important;
+            padding: 18px 18px;
+            margin: 0 2px;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .navbar-inverse .navbar-nav > li > a:hover {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            color: white !important;
+            transform: translateY(-2px);
+        }
+
+        /* 统一选中样式：所有菜单项选中时均为蓝色背景 */
+        .navbar-inverse .navbar-nav > li.active > a,
+        .navbar-inverse .navbar-nav > li.active > a:hover,
+        .navbar-inverse .navbar-nav > li.active > a:focus {
+            color: white !important;
+            background-color: #2b6ca3 !important;
+            box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(43, 108, 163, 0.4);
+            border-radius: 30px;
+        }
+
+        /* 导航栏右侧按钮组 */
+        .navbar-right {
+            margin-right: 15px;
+        }
+
+        /* 移动端折叠按钮样式 - 我们将隐藏它，因为强制不折叠 */
+        .navbar-toggle {
+            border-color: #5f8bb3;
+            background-color: transparent;
+            margin-top: 12px;
+            display: none !important; /* 隐藏汉堡菜单 */
+        }
+
+        .navbar-toggle .icon-bar {
+            background-color: #e1ecf9;
+        }
+
+        .navbar-toggle:hover {
+            background-color: #25537b;
+        }
+
+        body {
+            padding-top: 60px;
+            background: linear-gradient(145deg, #f0f7ff 0%, #e6f0fa 100%);
+            font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* 页面内容容器 - 用于统一内边距，但不强制，让子页面自己控制 */
+        .page-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 30px;
+        }
+
+        /* 原有的历史卡片样式保留 */
+        .history-item {
+            transition: all 0.3s ease;
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #ddd;
+        }
+        .history-item:hover {
+            background-color: #f0f0f0;
+            border-left-color: #a9d3da;
+        }
+        #pageInput {
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 2px 5px;
+        }
+        .goto-page {
+            margin: 0 5px;
+        }
+        .modal-content {
+            border-radius: 5px;
+        }
+        .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        .modal-footer {
+            border-top: 1px solid #dee2e6;
+        }
+
+        /* ===== 新增：强制导航栏始终水平排列（不折叠、不换行） ===== */
+        .navbar-inverse .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: nowrap;
+            margin-left: 60px;
+            margin-right: 60px;
+        }
+
+        .navbar-inverse .navbar-header {
+            flex-shrink: 0;          /* 品牌区域不压缩 */
+            margin-right: 15px;
+        }
+
+        /* 始终显示导航菜单，并允许横向滚动 */
+        .navbar-inverse .navbar-collapse {
+            display: flex !important;
+            flex: 1;
+            align-items: center;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+
+        /* 移除 Bootstrap 默认的折叠与浮动 */
+        .navbar-inverse .navbar-collapse.collapse {
+            display: flex !important;
+            height: auto !important;
+            visibility: visible !important;
+        }
+
+        /* 导航菜单容器：flex 水平排列，靠右对齐 */
+        .navbar-inverse .navbar-nav {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            margin-left: auto;        /* 整体靠右 */
+        }
+
+        /* 每个菜单项保持行内块特性，防止折行 */
+        .navbar-inverse .navbar-nav > li {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;      /* 文字不换行 */
+            float: none !important;   /* 清除 Bootstrap 浮动 */
+        }
+
+        /* 链接样式继承原有，可微调间距 */
+        .navbar-inverse .navbar-nav > li > a {
+            padding: 18px 18px;
+            line-height: 20px;
+        }
+
+        /* 隐藏汉堡菜单按钮（永远不需要折叠）已在上面设置 display:none，此处保留确保 */
+        .navbar-toggle {
+            display: none !important;
+        }
+
+        /* 小屏幕适配：减小边距和内边距，避免过早溢出 */
+        @media (max-width: 767px) {
+            .navbar-inverse .header {
+                margin-left: 15px;
+                margin-right: 15px;
+            }
+            .navbar-inverse .navbar-nav > li > a {
+                padding: 18px 12px;   /* 适当缩小间距 */
+            }
+        }
+
+        /* 超小屏幕（如 400px 以下）可进一步缩小字体或间距 */
+        @media (max-width: 480px) {
+            .navbar-inverse .navbar-brand {
+                font-size: 18px;
+                padding: 18px 5px;
+            }
+            .navbar-inverse .navbar-nav > li > a {
+                padding: 18px 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 导航栏 - 所有页面统一使用这个导航栏 -->
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="header" style="margin-left: 60px; margin-right: 60px;">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">明辨：虚假新闻智能检测系统</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                {% if 'username' in session %}
+                    <!-- 首页 -->
+                    <li id="nav-home">
+                        <a href="/home">
+                            <i class="fas fa-home" style="margin-right: 5px;"></i><b>首页</b>
+                        </a>
+                    </li>
+                    <!-- 虚假新闻特征分析 -->
+                    <li id="nav-introduce">
+                        <a href="/introduce">
+                            <i class="fas fa-chart-pie" style="margin-right: 5px;"></i><b>智能检测系统介绍</b>
+                        </a>
+                    </li>
+                    <!-- 新闻在线检测 -->
+                    <li id="nav-defect">
+                        <a href="/defect_predict">
+                            <i class="fas fa-flask" style="margin-right: 5px;"></i><b>新闻在线检测</b>
+                        </a>
+                    </li>
+
+                    <!-- 专家复审模块：普通用户 -->
+                    {% if session['user_type'] == '普通用户' %}
+                    <li id="nav-reexamine-user">
+                        <a href="/user_reexamine">
+                            <i class="fas fa-clipboard-check" style="margin-right: 5px;"></i><b>专家复审</b>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- 专家复审模块：专家用户 -->
+                    {% if session['user_type'] == 'experts' %}
+                    <li id="nav-reexamine-expert">
+                        <a href="/reexamine">
+                            <i class="fas fa-gavel" style="margin-right: 5px;"></i><b>专家复审</b>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- 新闻辟谣 -->
+                    <li id="nav-news">
+                        <a href="/news">
+                            <i class="fas fa-newspaper" style="margin-right: 5px;"></i><b>新闻辟谣</b>
+                        </a>
+                    </li>
+                    <!-- 我的消息 -->
+                    <li id="nav-messages">
+                        <a href="/my_messages">
+                            <i class="fas fa-envelope" style="margin-right: 5px;"></i>
+                            <b>我的消息</b>
+                            <span id="message-badge" style="display: none; background: #dc2626; color: white; border-radius: 20px; padding: 2px 6px; font-size: 0.7rem; margin-left: 5px;">0</span>
+                        </a>
+                    </li>
+                    <!-- 个人信息 -->
+                    <li id="nav-profile">
+                        <a href="/self_information">
+                            <i class="fas fa-user-circle" style="margin-right: 5px;"></i><b>个人信息</b>
+                        </a>
+                    </li>
+                    <!-- 数据报表 -->
+                    <li id="nav-data">
+                        <a href="/data_excel">
+                            <i class="fas fa-table" style="margin-right: 5px;"></i><b>数据报表</b>
+                        </a>
+                    </li>
+                    <!-- 退出登录 -->
+                    <li id="nav-logout">
+                        <a href="/logout">
+                            <i class="fas fa-sign-out-alt" style="margin-right: 5px;"></i><b>退出登录</b>
+                        </a>
+                    </li>
+                {% else %}
+                    <!-- 未登录状态下仅显示登录按钮 -->
+                    <li id="nav-login">
+                        <a href="/login">
+                            <i class="fas fa-sign-in-alt" style="margin-right: 5px;"></i><b>登录</b>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- 页面内容区块 - 子页面填充这里 -->
+{% block content %}
+{% endblock %}
+
+<!-- jQuery 和 Bootstrap JS (放在底部提高加载速度) -->
+<script src="../static/js/jquery.min.js" type="text/javascript"></script>
+<script src="../static/js/bootstrap.min.js" type="text/javascript"></script>
+
+<!-- 通用脚本 -->
+<script type="text/javascript">
+    $(document).ready(function() {
+        console.log('导航栏高亮脚本执行...');
+
+        // 获取当前路径，忽略查询参数和尾部斜杠
+        var currentPath = window.location.pathname.split('?')[0].replace(/\/$/, '');
+        console.log('当前路径:', currentPath);
+
+        // 根路径映射到 /home
+        if (currentPath === '/' || currentPath === '') {
+            currentPath = '/home';
+        }
+
+        // 移除所有已存在的 active 类
+        $('.navbar-nav li').removeClass('active');
+
+        // 方案1：优先通过ID精准匹配（更可靠）
+        var pathToIdMap = {
+            '/home': 'nav-home',
+            '/introduce': 'nav-introduce',
+            '/defect_predict': 'nav-defect',
+            '/user_reexamine': 'nav-reexamine-user',
+            '/reexamine': 'nav-reexamine-expert',
+            '/expert_reexamine': 'nav-reexamine-expert',
+            '/news': 'nav-news',
+            '/my_messages': 'nav-messages',
+            '/self_information': 'nav-profile',
+            '/data_excel': 'nav-data',
+            '/logout': 'nav-logout',
+            '/login': 'nav-login'
+        };
+
+        // 根据当前路径匹配对应的导航ID并激活
+        if (pathToIdMap[currentPath]) {
+            $('#' + pathToIdMap[currentPath]).addClass('active');
+            console.log('通过ID激活菜单:', pathToIdMap[currentPath]);
+        }
+        // 方案2：备用方案 - 遍历链接匹配（兼容其他情况）
+        else {
+            $('.navbar-nav li a').each(function() {
+                var $link = $(this);
+                var href = $link.attr('href');
+                if (!href || href === '#' || href.indexOf('javascript:') === 0) {
+                    return true; // 跳过无效链接
+                }
+
+                // 提取链接路径并统一格式（移除尾部斜杠）
+                var linkPath = href.split('?')[0].replace(/\/$/, '');
+
+                // 精确匹配
+                if (linkPath === currentPath) {
+                    $link.parent('li').addClass('active');
+                    console.log('通过链接激活菜单:', linkPath);
+                    return false; // 找到后停止遍历
+                }
+            });
+        }
+
+        // 处理移动端菜单关闭（因为现在没有折叠，此代码其实无用，但保留无害）
+        $('.navbar-nav li a').on('click', function() {
+            // 无操作，可保留或删除
+        });
+
+        // 登录状态检查 (所有页面通用)
+        {% if 'username' in session %}
+        $.get('/check_login', function(data) {
+            if (data.login === false) {
+                window.location = '/';
+            }
+        }).fail(function() {
+            // 如果请求失败，不做跳转
+        });
+        {% endif %}
+
+        // 动态获取未读消息数量并显示徽章
+        function updateMessageBadge() {
+            {% if 'username' in session %}
+            $.get('/api/unread_message_count', function(data) {
+                if (data && data.count > 0) {
+                    $('#message-badge').text(data.count).show();
+                } else {
+                    $('#message-badge').hide();
+                }
+            }).fail(function() {
+                $('#message-badge').hide();
+            });
+            {% else %}
+            $('#message-badge').hide();
+            {% endif %}
+        }
+
+        updateMessageBadge();
+    });
+</script>
+
+<!-- 子页面可以插入额外的脚本 -->
+{% block scripts %}
+{% endblock %}
+
+</body>
+</html>

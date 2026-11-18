@@ -1,0 +1,2282 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<!-- 引入 Google Material 图标及优雅字体 -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+<!-- Font Awesome 5 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<!-- Cropper.js 用于图片裁剪 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<style>
+    /* 全局重置与字体 */
+    * {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: linear-gradient(160deg, #e8eef6 0%, #dfe7f2 40%, #eaeff8 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .profile-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        animation: fadeUp 0.5s ease;
+    }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 卡片设计 */
+    .profile-card {
+        background: #ffffff;
+        border-radius: 28px;
+        box-shadow: 0 8px 40px -8px rgba(15, 30, 60, 0.12), 0 0 0 1px rgba(220,230,245,0.6);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .profile-card:hover {
+        box-shadow: 0 12px 50px -8px rgba(15, 30, 60, 0.16), 0 0 0 1px rgba(200,215,240,0.7);
+    }
+
+    /* 头部设计 */
+    .profile-header {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1a3352 100%);
+        padding: 2.5rem 2rem 3.5rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-header::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -8%;
+        width: 350px;
+        height: 350px;
+        background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+
+    .profile-header::after {
+        content: '';
+        position: absolute;
+        bottom: -40%;
+        left: -8%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: float 10s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(20px, 20px); }
+    }
+
+    /* 头像容器 */
+    .avatar-container {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        margin: 0 auto 1.2rem;
+        cursor: pointer;
+        z-index: 10;
+    }
+
+    .avatar-wrapper {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow: 0 12px 24px -6px rgba(0,0,0,0.25), 0 0 0 3px rgba(255,255,255,0.15);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .avatar-wrapper:hover {
+        transform: scale(1.05);
+        box-shadow: 0 16px 32px -6px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,255,255,0.25);
+    }
+
+    .avatar-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: all 0.3s ease;
+    }
+
+    .avatar-edit-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        padding: 25px 0 15px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .avatar-wrapper:hover .avatar-edit-overlay {
+        opacity: 1;
+    }
+
+    .avatar-edit-btn {
+        background: white;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e293b;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        border: none;
+        font-size: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .avatar-edit-btn:hover {
+        transform: scale(1.1);
+        background: #2563eb;
+        color: white;
+    }
+
+    /* 重置头像按钮特殊样式 */
+    .avatar-edit-btn.reset-btn {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .avatar-edit-btn.reset-btn:hover {
+        background: #d97706;
+    }
+
+    /* 标题文字 */
+    .profile-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.3rem;
+        letter-spacing: -0.01em;
+        position: relative;
+        z-index: 2;
+    }
+
+    .profile-header .text-muted {
+        color: rgba(255,255,255,0.9);
+        font-size: 1.1rem;
+        font-weight: 400;
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    /* 表单主体 */
+    .profile-body {
+        padding: 2.5rem;
+        background: white;
+    }
+
+    /* 网格布局 */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .form-group.full-width {
+        grid-column: span 2;
+    }
+
+    /* 标签样式 */
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #475569;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.3px;
+    }
+
+    .form-group label i {
+        font-size: 1.2rem;
+        color: #2563eb;
+    }
+
+    /* 只读样式 */
+    .form-control-static {
+        background: #f1f5f9;
+        padding: 0.9rem 1.5rem;
+        border-radius: 14px;
+        color: #1e293b;
+        font-size: 1rem;
+        font-weight: 500;
+        border: 1px solid #e2e8f0;
+        word-break: break-word;
+    }
+
+    .readonly-badge {
+        background: #f1f5f9;
+        padding: 0.6rem 1.5rem;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #1e293b;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* 输入框样式 */
+    .form-control {
+        width: 100%;
+        padding: 0.85rem 1.3rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 14px;
+        font-size: 1rem;
+        transition: all 0.25s ease;
+        background: white;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        background: #fafcff;
+    }
+
+    .form-control:hover:not(:focus) {
+        border-color: #94a3b8;
+    }
+
+    .form-control::placeholder {
+        color: #94a3b8;
+        font-weight: 300;
+    }
+
+    /* 性别选择器 */
+    .gender-selector {
+        display: flex;
+        gap: 1rem;
+        background: #f8fafc;
+        padding: 0.4rem;
+        border-radius: 16px;
+        border: 1.5px solid #e2e8f0;
+    }
+
+    .gender-option {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 0.7rem;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+
+    .gender-option.selected {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        box-shadow: 0 6px 16px -4px rgba(37, 99, 235, 0.35);
+    }
+
+    .gender-option.selected i,
+    .gender-option.selected .gender-label {
+        color: white;
+    }
+
+    .gender-icon {
+        font-size: 1.8rem;
+        transition: all 0.3s ease;
+    }
+
+    .gender-icon.male {
+        color: #3b82f6;
+    }
+
+    .gender-icon.female {
+        color: #ec4899;
+    }
+
+    .gender-option.selected .gender-icon.male,
+    .gender-option.selected .gender-icon.female {
+        color: white;
+    }
+
+    .gender-label {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #475569;
+    }
+
+    /* 按钮组 */
+    .button-group {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    /* 保存按钮 */
+    .btn-save {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border: none;
+        padding: 0.9rem 3rem;
+        border-radius: 14px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: white;
+        box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.4);
+        transition: all 0.25s ease;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px -4px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-save:active {
+        transform: translateY(0);
+    }
+
+    .btn-save i {
+        font-size: 1.2rem;
+    }
+
+    /* 修改密码按钮 */
+    .btn-change-password {
+        background: white;
+        border: 1.5px solid #d1d5db;
+        padding: 0.9rem 3rem;
+        border-radius: 14px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #374151;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.25s ease;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .btn-change-password:hover {
+        transform: translateY(-2px);
+        border-color: #2563eb;
+        color: #2563eb;
+        box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.15);
+    }
+
+    .btn-change-password:active {
+        transform: translateY(0);
+    }
+
+    .btn-change-password i {
+        font-size: 1.2rem;
+    }
+
+    /* 消息提示（用于主界面） */
+    .message-area {
+        margin-top: 2rem;
+        text-align: center;
+    }
+
+    .alert {
+        padding: 0.85rem 1.8rem;
+        border-radius: 14px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        animation: slideIn 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        box-shadow: 0 4px 12px -2px rgba(0,0,0,0.08);
+    }
+
+    @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .alert-success {
+        background: #dcfce7;
+        color: #166534;
+        border-left: 4px solid #22c55e;
+    }
+
+    .alert-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border-left: 4px solid #ef4444;
+    }
+
+    /* 分割线 */
+    .divider {
+        margin: 2rem 0;
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+    }
+
+    /* 头像选择模态框 */
+    .avatar-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        position: relative;
+        width: 90%;
+        max-width: 800px;
+        margin: 50px auto;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+        animation: modalSlideUp 0.35s ease;
+    }
+
+    @keyframes modalSlideUp {
+        from { transform: translateY(50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #eef2f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 24px 24px 0 0;
+    }
+
+    .modal-header h3 {
+        font-size: 1.5rem;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modal-header h3 i {
+        color: #2563eb;
+    }
+
+    .modal-body {
+        padding: 2rem;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    /* 头像标签切换 */
+    .avatar-tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #eef2f6;
+        padding-bottom: 1rem;
+    }
+
+    .tab-btn {
+        padding: 0.8rem 2rem;
+        border: none;
+        background: #f1f5f9;
+        border-radius: 14px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .tab-btn i {
+        font-size: 1.1rem;
+    }
+
+    .tab-btn.active {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.5s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* 默认头像网格 */
+    .avatar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 1.5rem;
+        padding: 0.5rem;
+    }
+
+    .avatar-option {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        overflow: hidden;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: all 0.3s;
+        margin: 0 auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .avatar-option:hover {
+        transform: scale(1.1);
+        border-color: #2563eb;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+    }
+
+    .avatar-option.selected {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+    }
+
+    .avatar-option img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* 上传区域美化 */
+    .upload-area {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 2px dashed #cbd5e1;
+        border-radius: 20px;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-area::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(29, 78, 216, 0.05) 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .upload-area:hover {
+        border-color: #2563eb;
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -10px rgba(37, 99, 235, 0.2);
+    }
+
+    .upload-area:hover::before {
+        opacity: 1;
+    }
+
+    .upload-area.dragover {
+        border-color: #2563eb;
+        background: #eef2ff;
+        transform: scale(1.02);
+    }
+
+    .upload-icon {
+        font-size: 3rem;
+        color: #2563eb;
+        margin-bottom: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .upload-area h4 {
+        font-size: 1.4rem;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .upload-hint {
+        color: #64748b;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .upload-btn {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+    }
+
+    .upload-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    /* 裁剪区域 - 圆框固定大小不可调，只能移动/缩放图片 */
+    .crop-container {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 20px;
+    }
+
+    .crop-container h5 {
+        font-size: 1.1rem;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .crop-image-wrapper {
+        max-height: 400px;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #e2e8f0;
+        position: relative;
+    }
+
+    .crop-image-wrapper img {
+        max-width: 100%;
+        display: block;
+    }
+
+    .crop-controls {
+        margin-top: 1.5rem;
+    }
+
+    .crop-tips {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: #e2e8f0;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .crop-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .crop-btn {
+        padding: 0.6rem 1.8rem;
+        border: none;
+        border-radius: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.95rem;
+    }
+
+    .crop-btn.confirm {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+    }
+
+    .crop-btn.confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.4);
+    }
+
+    .crop-btn.cancel {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+    .crop-btn.cancel:hover {
+        background: #cbd5e1;
+        transform: translateY(-2px);
+    }
+
+    /* 裁剪消息提示 */
+    .crop-message {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    .crop-message .alert {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    /* 裁剪预览区域（裁剪后显示） */
+    .crop-preview-container {
+        text-align: center;
+        padding: 2rem;
+        background: #f8fafc;
+        border-radius: 20px;
+    }
+
+    .preview-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        border: 3px solid #2563eb;
+    }
+
+    .preview-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .preview-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn-re-crop {
+        background: #e2e8f0;
+        border: none;
+        padding: 0.6rem 1.8rem;
+        border-radius: 14px;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-re-crop:hover {
+        background: #cbd5e1;
+        transform: translateY(-2px);
+    }
+
+    /* ---------- 移除裁剪框视觉隐藏规则，恢复Cropper.js默认样式 ---------- */
+    /* 原隐藏规则已全部删除，以下保留圆形裁剪框的必要样式 */
+    .cropper-crop-box, .cropper-view-box {
+        border-radius: 50%;
+    }
+    .cropper-face {
+        border-radius: 50%;
+    }
+
+    .modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #eef2f6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 30px;
+        background: #f8fafc;
+        border-radius: 0 0 24px 24px;
+    }
+
+    .btn-save-avatar {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        border: none;
+        padding: 0.8rem 2.5rem;
+        border-radius: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .btn-save-avatar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-save-avatar:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .modal-footer .modal-close-footer {
+        background: #e2e8f0;
+        border: none;
+        padding: 0.8rem 2.5rem;
+        border-radius: 14px;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .modal-footer .modal-close-footer:hover {
+        background: #cbd5e1;
+        transform: translateY(-2px);
+    }
+
+    /* 修改密码模态框 */
+    .password-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1001;
+        backdrop-filter: blur(5px);
+    }
+
+    .password-modal-content {
+        position: relative;
+        width: 90%;
+        max-width: 450px;
+        margin: 100px auto;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+        animation: modalSlideUp 0.35s ease;
+    }
+
+    .password-modal-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #eef2f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 24px 24px 0 0;
+    }
+
+    .password-modal-header h3 {
+        font-size: 1.4rem;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .password-modal-header h3 i {
+        color: #10b981;
+    }
+
+    .password-modal-close {
+        background: #e2e8f0;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        color: #475569;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .password-modal-close:hover {
+        background: #cbd5e1;
+        color: #1e293b;
+        transform: rotate(90deg);
+    }
+
+    .password-modal-body {
+        padding: 2rem;
+    }
+
+    .password-form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .password-form-group label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #475569;
+        margin-bottom: 0.5rem;
+    }
+
+    .password-form-group label i {
+        color: #10b981;
+        font-size: 1.1rem;
+    }
+
+    .password-input-wrapper {
+        position: relative;
+    }
+
+    .password-input {
+        width: 100%;
+        padding: 0.85rem 1.3rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 14px;
+        font-size: 1rem;
+        transition: all 0.25s ease;
+        background: white;
+        padding-right: 3rem;
+    }
+
+    .password-input:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 1.1rem;
+    }
+
+    .password-toggle:hover {
+        color: #10b981;
+    }
+
+    .password-strength {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        padding: 0.3rem 1rem;
+        border-radius: 20px;
+        display: inline-block;
+    }
+
+    .strength-weak {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .strength-medium {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .strength-strong {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    /* 密码模态框中的消息区域 */
+    .password-message-area {
+        margin: 1rem 2rem 0;
+        text-align: center;
+    }
+
+    .password-modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #eef2f6;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        background: #f8fafc;
+        border-radius: 0 0 24px 24px;
+    }
+
+    .btn-password-cancel {
+        background: #f1f5f9;
+        border: 1.5px solid #e2e8f0;
+        padding: 0.8rem 2rem;
+        border-radius: 14px;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.25s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-password-cancel:hover {
+        background: #e2e8f0;
+        transform: translateY(-2px);
+    }
+
+    .btn-password-confirm {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 14px;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.25s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 6px 16px -4px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-password-confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px -4px rgba(16, 185, 129, 0.45);
+    }
+
+    .btn-password-confirm:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group.full-width {
+            grid-column: span 1;
+        }
+
+        .profile-body {
+            padding: 2rem 1.5rem;
+        }
+
+        .avatar-container {
+            width: 120px;
+            height: 120px;
+        }
+
+        .gender-selector {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-content {
+            width: 95%;
+            margin: 30px auto;
+        }
+
+        .avatar-grid {
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 1rem;
+        }
+
+        .avatar-option {
+            width: 70px;
+            height: 70px;
+        }
+
+        .button-group {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn-save, .btn-change-password {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .crop-actions {
+            flex-direction: column;
+        }
+
+        .crop-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .modal-footer {
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .profile-header h2 {
+            font-size: 2rem;
+        }
+
+        .avatar-tabs {
+            flex-direction: column;
+        }
+
+        .tab-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .password-modal-footer {
+            flex-direction: column;
+        }
+
+        .btn-password-cancel, .btn-password-confirm {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-wrapper">
+    <div class="profile-card">
+        <!-- 头部：可编辑头像 -->
+        <div class="profile-header">
+            <div class="avatar-container" id="avatarContainer">
+                <div class="avatar-wrapper">
+                    <img src="{{ avatar_url }}" alt="用户头像" id="avatarImage">
+                    <div class="avatar-edit-overlay">
+                        <button class="avatar-edit-btn" id="changeAvatarBtn" title="更换头像">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <button class="avatar-edit-btn reset-btn" id="resetAvatarBtn" title="重置为默认头像">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <h2>{{ nickname or username }}</h2>
+            <div class="text-muted">
+                <i class="fas fa-map-marker-alt"></i>
+                {% if role == '普通用户' and user.user_address %}
+                    {{ user.user_address }}
+                {% else %}
+                    欢迎来到个人中心
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 表单主体 -->
+        <div class="profile-body">
+            <form id="profileForm" method="POST" action="{{ url_for('profile.self_information') }}">
+                <div class="form-grid">
+                    <!-- 用户名（只读） -->
+                    <div class="form-group full-width">
+                        <label><i class="fas fa-user-circle"></i> 用户名</label>
+                        <div class="form-control-static">
+                            {% if role == '普通用户' %}
+                                {{ user.user_name }}
+                            {% elif role == 'experts' %}
+                                {{ user.export_name }}
+                            {% elif role == 'admin' %}
+                                {{ user.admin_name }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 角色（只读） -->
+                    <div class="form-group">
+                        <label><i class="fas fa-id-badge"></i> 角色</label>
+                        <div class="readonly-badge">
+                            {% if role == '普通用户' %}
+                                <i class="fas fa-user"></i> 普通用户
+                            {% elif role == 'experts' %}
+                                <i class="fas fa-flask"></i> 专家
+                            {% elif role == 'admin' %}
+                                <i class="fas fa-crown"></i> 管理员
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 注册时间（只读） -->
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> 注册时间</label>
+                        <div class="readonly-badge">
+                            <i class="fas fa-clock"></i>
+                            {{ user.create_time }}
+                        </div>
+                    </div>
+
+                    <!-- 昵称 -->
+                    <div class="form-group">
+                        <label for="nickname"><i class="fas fa-tag"></i> 昵称</label>
+                        <input type="text" class="form-control" id="nickname" name="nickname"
+                               value="{{ nickname or '' }}"
+                               placeholder="请输入昵称（2-20个字符）"
+                               pattern=".{2,20}"
+                               title="昵称长度必须在2-20个字符之间">
+                    </div>
+
+                    <!-- 电子邮箱 -->
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope"></i> 电子邮箱</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               value="{{ email or '' }}"
+                               placeholder="your@email.com"
+                               pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                               title="请输入有效的邮箱地址">
+                    </div>
+
+                    <!-- 手机号码 -->
+                    <div class="form-group">
+                        <label for="phone"><i class="fas fa-phone-alt"></i> 手机号码</label>
+                        <input type="tel" class="form-control" id="phone" name="phone"
+                               value="{{ phone or '' }}"
+                               placeholder="1xxxxxxxxxx"
+                               pattern="1[3-9]\d{9}"
+                               title="请输入11位手机号码">
+                    </div>
+
+                    <!-- 年龄 -->
+                    <div class="form-group">
+                        <label for="age"><i class="fas fa-birthday-cake"></i> 年龄</label>
+                        <input type="number" class="form-control" id="age" name="age"
+                               value="{{ age or '' }}"
+                               min="1" max="120"
+                               placeholder="1-120"
+                               title="年龄必须在1-120岁之间">
+                    </div>
+
+                    <!-- 地址（仅普通用户） -->
+                    {% if role == '普通用户' %}
+                    <div class="form-group full-width">
+                        <label for="address"><i class="fas fa-map-marker-alt"></i> 地址</label>
+                        <input type="text" class="form-control" id="address" name="address"
+                               value="{{ user.user_address or '' }}"
+                               placeholder="您的详细地址">
+                    </div>
+                    {% endif %}
+
+                    <!-- 性别 -->
+                    <div class="form-group full-width">
+                        <label><i class="fas fa-venus-mars"></i> 性别</label>
+                        <div class="gender-selector">
+                            <div class="gender-option {% if gender == '男' %}selected{% endif %}" data-gender="男">
+                                <i class="material-icons gender-icon male">male</i>
+                                <span class="gender-label">男</span>
+                                <input type="radio" name="gender" value="男" {% if gender =='男' %}checked{% endif %} style="display: none;">
+                            </div>
+                            <div class="gender-option {% if gender == '女' %}selected{% endif %}" data-gender="女">
+                                <i class="material-icons gender-icon female">female</i>
+                                <span class="gender-label">女</span>
+                                <input type="radio" name="gender" value="女" {% if gender =='女' %}checked{% endif %} style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 登录次数（只读） -->
+                    <div class="form-group">
+                        <label><i class="fas fa-sign-in-alt"></i> 登录次数</label>
+                        <div class="readonly-badge">
+                            <i class="fas fa-chart-line"></i>
+                            {{ user.login_count }} 次
+                        </div>
+                    </div>
+
+                   <!-- 专家特有信息 -->
+                    {% if role == 'experts' %}
+                    <div class="form-group">
+                        <label><i class="fas fa-certificate"></i> 认证状态</label>
+                        <div class="readonly-badge">
+                            {% if user.certification_status == '已认证' %}
+                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                            {% elif user.certification_status == '待认证' %}
+                                <i class="fas fa-clock" style="color: #f59e0b;"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle" style="color: #ef4444;"></i>
+                            {% endif %}
+                            {{ user.certification_status }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-gavel"></i> 审核状态</label>
+                        <div class="readonly-badge">
+                            {% if user.approval_status == '通过' %}
+                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                            {% elif user.approval_status == '待审核' %}
+                                <i class="fas fa-clock" style="color: #f59e0b;"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle" style="color: #ef4444;"></i>
+                            {% endif %}
+                            {{ user.approval_status }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- 分割线 -->
+                <div class="divider"></div>
+
+                <!-- 按钮组：保存按钮和修改密码按钮 -->
+                <div class="button-group">
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i> 保存更改
+                    </button>
+                    <button type="button" class="btn-change-password" id="changePasswordBtn">
+                        <i class="fas fa-key"></i> 修改密码
+                    </button>
+                </div>
+
+                <!-- 消息提示（主界面） -->
+                <div id="message" class="message-area"></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 头像选择模态框 -->
+<div class="avatar-modal" id="avatarModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>
+                <i class="fas fa-camera-retro"></i>
+                选择头像
+            </h3>
+        </div>
+        <div class="modal-body">
+            <!-- 标签切换 -->
+            <div class="avatar-tabs">
+                <button class="tab-btn active" id="tabDefault">
+                    <i class="fas fa-images"></i>
+                    默认头像
+                </button>
+                <button class="tab-btn" id="tabUpload">
+                    <i class="fas fa-upload"></i>
+                    上传头像
+                </button>
+            </div>
+
+            <!-- 默认头像选项卡 -->
+            <div class="tab-content active" id="defaultTab">
+                <div class="avatar-grid">
+                    {% for i in range(1, 51) %}
+                    <div class="avatar-option" data-avatar="{{ i }}.jpg" data-type="default">
+                        <img src="{{ url_for('static', filename='touxiang_image/' + i|string + '.jpg') }}"
+                             alt="头像{{ i }}"
+                             loading="lazy">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 上传头像选项卡 -->
+            <div class="tab-content" id="uploadTab">
+                <!-- 上传区域 -->
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h4>拖拽图片到此处或点击上传</h4>
+                    <p class="upload-hint">支持 JPG、PNG、GIF 格式，最大 5MB</p>
+                    <button class="upload-btn" id="selectFileBtn" type="button">
+                        <i class="fas fa-folder-open"></i>
+                        选择图片
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+
+                <!-- 裁剪区域 -->
+                <div class="upload-preview" id="uploadPreview" style="display: none;">
+                    <div class="crop-container">
+                        <h5><i class="fas fa-crop"></i> 裁剪图片</h5>
+                        <div class="crop-image-wrapper">
+                            <img src="" alt="裁剪" id="cropImage">
+                        </div>
+                        <div class="crop-controls">
+                            <div class="crop-tips">
+                                <i class="fas fa-info-circle"></i>
+                                拖动图片或滚动缩放，圆框范围即为头像
+                            </div>
+                            <div class="crop-actions">
+                                <button class="crop-btn cancel" id="cancelCrop" type="button">
+                                    <i class="fas fa-times"></i>
+                                    取消
+                                </button>
+                                <button class="crop-btn confirm" id="confirmCrop" type="button">
+                                    <i class="fas fa-check"></i>
+                                    确认裁剪
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 裁剪消息提示区域 -->
+                        <div class="crop-message" id="cropMessage"></div>
+                    </div>
+                </div>
+
+                <!-- 裁剪预览区域（裁剪后显示） -->
+                <div class="crop-preview-container" id="cropPreview" style="display: none;">
+                    <div class="preview-avatar">
+                        <img src="" alt="头像预览" id="previewImage">
+                    </div>
+                    <p class="text-muted" style="margin-bottom: 1rem;">裁剪完成，点击下方保存头像上传</p>
+                    <div class="preview-actions">
+                        <button class="btn-re-crop" id="reCropBtn" type="button">
+                            <i class="fas fa-undo"></i>
+                            重新裁剪
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-close-footer" id="closeModalFooterBtn" type="button">
+                <i class="fas fa-times"></i>
+                关闭
+            </button>
+            <button class="btn-save-avatar" id="saveAvatar">
+                <i class="fas fa-save"></i>
+                保存头像
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码模态框（自带消息提示） -->
+<div class="password-modal" id="passwordModal">
+    <div class="password-modal-content">
+        <div class="password-modal-header">
+            <h3>
+                <i class="fas fa-key"></i>
+                修改密码
+            </h3>
+            <button class="password-modal-close" id="closePasswordModalBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="password-modal-body">
+            <form id="passwordForm">
+                <div class="password-form-group">
+                    <label for="oldPassword">
+                        <i class="fas fa-lock"></i> 原密码
+                    </label>
+                    <div class="password-input-wrapper">
+                        <input type="password" class="password-input" id="oldPassword"
+                               placeholder="请输入原密码" required>
+                        <button type="button" class="password-toggle" id="toggleOldPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="password-form-group">
+                    <label for="newPassword">
+                        <i class="fas fa-lock"></i> 新密码
+                    </label>
+                    <div class="password-input-wrapper">
+                        <input type="password" class="password-input" id="newPassword"
+                               placeholder="6-20位，包含字母和数字" required
+                               pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,20}$"
+                               title="密码必须为6-20位，且包含字母和数字">
+                        <button type="button" class="password-toggle" id="toggleNewPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+
+                <div class="password-form-group">
+                    <label for="confirmPassword">
+                        <i class="fas fa-lock"></i> 确认新密码
+                    </label>
+                    <div class="password-input-wrapper">
+                        <input type="password" class="password-input" id="confirmPassword"
+                               placeholder="请再次输入新密码" required>
+                        <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <!-- 密码模态框内的消息提示区域 -->
+            <div id="passwordMessage" class="password-message-area"></div>
+        </div>
+        <div class="password-modal-footer">
+            <button class="btn-password-cancel" id="cancelPasswordBtn">
+                <i class="fas fa-times"></i> 取消
+            </button>
+            <button class="btn-password-confirm" id="confirmPasswordBtn">
+                <i class="fas fa-check"></i> 确认修改
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+$(document).ready(function() {
+    // 检查登录状态
+    $.get('/check_login', function(response) {
+        if (!response.login || !['普通用户', 'experts', 'admin'].includes(response.role)) {
+            window.location.href = '/login';
+        }
+    }).fail(function() {
+        console.log('check_login接口不存在');
+    });
+
+    // 变量定义
+    var currentAvatar = "{{ avatar_file }}";
+    var selectedAvatar = null;
+    var cropper = null;
+    var uploadedFile = null;          // 原始上传文件
+    var uploadedFileDataURL = null;   // 用于重新裁剪时恢复
+
+    // 性别选择
+    $('.gender-option').on('click', function() {
+        $('.gender-option').removeClass('selected');
+        $(this).addClass('selected');
+        $(this).find('input[type="radio"]').prop('checked', true);
+    });
+
+    // 打开头像选择模态框
+    $('#changeAvatarBtn').on('click', function(e) {
+        e.stopPropagation();
+        $('#avatarModal').fadeIn(300);
+        resetModalState();
+        highlightSelectedAvatar();
+    });
+
+    // 重置模态框状态（关闭时调用，也用于打开时初始化）
+    function resetModalState() {
+        // 重置选项卡到默认
+        $('.tab-btn').removeClass('active');
+        $('#tabDefault').addClass('active');
+        $('.tab-content').removeClass('active');
+        $('#defaultTab').addClass('active');
+        // 清除所有头像选中
+        $('.avatar-option').removeClass('selected');
+        selectedAvatar = null;
+        // 重置上传区域
+        resetUpload();
+        // 隐藏预览区域
+        $('#cropPreview').hide();
+    }
+
+    // 关闭头像模态框
+    $('#closeModalFooterBtn').on('click', function() {
+        closeModal();
+    });
+
+    // 点击模态框外部关闭
+    $(window).on('click', function(e) {
+        if ($(e.target).hasClass('avatar-modal')) {
+            closeModal();
+        }
+    });
+
+    function closeModal() {
+        $('#avatarModal').fadeOut(300);
+        resetModalState();
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+    }
+
+    // 标签切换
+    $('#tabDefault').on('click', function() {
+        $('.tab-btn').removeClass('active');
+        $(this).addClass('active');
+        $('.tab-content').removeClass('active');
+        $('#defaultTab').addClass('active');
+        resetUpload();
+        selectedAvatar = null;
+        $('.avatar-option').removeClass('selected');
+        highlightSelectedAvatar();
+    });
+
+    $('#tabUpload').on('click', function() {
+        $('.tab-btn').removeClass('active');
+        $(this).addClass('active');
+        $('.tab-content').removeClass('active');
+        $('#uploadTab').addClass('active');
+        $('.avatar-option').removeClass('selected');
+        selectedAvatar = null;
+        resetUpload();
+    });
+
+    // 默认头像选择
+    $(document).on('click', '.avatar-option', function() {
+        $('.avatar-option').removeClass('selected');
+        $(this).addClass('selected');
+        selectedAvatar = {
+            file: $(this).data('avatar'),
+            type: 'default'
+        };
+    });
+
+    // 高亮当前选中的头像
+    function highlightSelectedAvatar() {
+        $('.avatar-option').removeClass('selected');
+        if (currentAvatar && !currentAvatar.startsWith('custom_')) {
+            $(`.avatar-option[data-avatar="${currentAvatar}"]`).addClass('selected');
+        }
+    }
+
+    // 上传头像相关
+    $('#selectFileBtn').on('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        $('#fileInput').trigger('click');
+    });
+
+    $('#uploadArea').on('click', function(e) {
+        if (e.target === this || $(e.target).hasClass('upload-icon') || $(e.target).hasClass('upload-hint') || $(e.target).hasClass('upload-area')) {
+            $('#fileInput').trigger('click');
+        }
+    });
+
+    $('#fileInput').on('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    // 拖拽上传
+    const uploadArea = document.getElementById('uploadArea');
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('dragover');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+
+    // 处理文件选择 - 固定圆框裁剪
+    function handleFileSelect(file) {
+        if (!file) return;
+
+        // 验证文件类型
+        if (!file.type.match('image.*')) {
+            showCropMessage('请选择图片文件！', 'error');
+            return;
+        }
+
+        // 验证文件大小（5MB）
+        if (file.size > 5 * 1024 * 1024) {
+            showCropMessage('图片大小不能超过5MB！', 'error');
+            return;
+        }
+
+        uploadedFile = file;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            uploadedFileDataURL = e.target.result; // 保存用于重新裁剪
+            // 隐藏上传区域，显示裁剪区域
+            $('#uploadArea').hide();
+            $('#uploadPreview').show();
+            $('#cropPreview').hide();
+
+            // 初始化裁剪，固定圆框，不可调整大小，但可以移动和缩放图片
+            var cropImg = document.getElementById('cropImage');
+            cropImg.src = e.target.result;
+
+            // 确保图片加载完成后再初始化cropper
+            cropImg.onload = function() {
+                if (cropper) {
+                    cropper.destroy();
+                }
+
+                cropper = new Cropper(cropImg, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',      // 移动图片
+                    movable: true,
+                    zoomable: true,
+                    rotatable: false,
+                    scalable: false,
+                    cropBoxMovable: false,  // 禁止移动裁剪框
+                    cropBoxResizable: false, // 禁止调整裁剪框大小
+                    minCropBoxWidth: 250,   // 固定宽度
+                    minCropBoxHeight: 250,  // 固定高度
+                    maxCropBoxWidth: 250,
+                    maxCropBoxHeight: 250,
+                    autoCropArea: 0.8,
+                    background: false,
+                    // 恢复默认视觉元素（删除或注释掉之前设置的false，因为默认为true）
+                    // guides: true,   // 默认为true
+                    // center: true,   // 默认为true
+                    // highlight: true // 默认为true
+                });
+            };
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // 显示裁剪区域的消息
+    function showCropMessage(text, type) {
+        var icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        var message = '<div class="alert alert-' + type + '">' +
+                      '<i class="fas fa-' + icon + '"></i>' +
+                      '<span>' + text + '</span>' +
+                      '</div>';
+        $('#cropMessage').html(message);
+        setTimeout(function() {
+            $('#cropMessage .alert').fadeOut('slow', function() {
+                $(this).remove();
+            });
+        }, 3000);
+    }
+
+    // 取消裁剪
+    $('#cancelCrop').on('click', function() {
+        resetUpload();
+    });
+
+    // 确认裁剪：生成裁剪后的图片，显示预览，并保存到 selectedAvatar
+    $('#confirmCrop').on('click', function() {
+        if (cropper) {
+            var canvas = cropper.getCroppedCanvas({
+                width: 300,
+                height: 300,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+
+            canvas.toBlob(function(blob) {
+                var file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+                uploadedFile = file;
+
+                selectedAvatar = {
+                    file: file,
+                    type: 'custom'
+                };
+
+                // 生成预览图
+                var previewUrl = URL.createObjectURL(blob);
+                $('#previewImage').attr('src', previewUrl);
+
+                // 隐藏裁剪界面，显示预览界面
+                $('#uploadPreview').hide();
+                $('#cropPreview').show();
+
+                // 显示裁剪完成提示（可选）
+                showCropMessage('裁剪完成，请点击保存头像', 'success');
+            }, 'image/jpeg', 0.95);
+        }
+    });
+
+    // 重新裁剪
+    $('#reCropBtn').on('click', function() {
+        if (uploadedFileDataURL) {
+            // 重新显示裁剪界面
+            $('#cropPreview').hide();
+            $('#uploadPreview').show();
+
+            // 重新初始化 cropper
+            var cropImg = document.getElementById('cropImage');
+            cropImg.src = uploadedFileDataURL;
+            cropImg.onload = function() {
+                if (cropper) {
+                    cropper.destroy();
+                }
+                cropper = new Cropper(cropImg, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    movable: true,
+                    zoomable: true,
+                    rotatable: false,
+                    scalable: false,
+                    cropBoxMovable: false,
+                    cropBoxResizable: false,
+                    minCropBoxWidth: 250,
+                    minCropBoxHeight: 250,
+                    maxCropBoxWidth: 250,
+                    maxCropBoxHeight: 250,
+                    autoCropArea: 0.8,
+                    background: false
+                    // 同样恢复默认视觉元素
+                });
+            };
+        }
+    });
+
+    function resetUpload() {
+        $('#uploadArea').show();
+        $('#uploadPreview').hide();
+        $('#cropPreview').hide();
+        $('#fileInput').val('');
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        uploadedFile = null;
+        uploadedFileDataURL = null;
+        $('#cropMessage').empty();
+    }
+
+    // 保存头像
+    $('#saveAvatar').on('click', function() {
+        if (!selectedAvatar) {
+            // 如果在预览界面但没有selectedAvatar，提示重新裁剪或选择
+            if ($('#cropPreview').is(':visible')) {
+                showCropMessage('请先完成裁剪', 'error');
+            } else {
+                showCropMessage('请选择一个头像', 'error');
+            }
+            return;
+        }
+
+        var formData = new FormData();
+
+        if (selectedAvatar.type === 'default') {
+            formData.append('avatar_type', 'default');
+            formData.append('avatar_file', selectedAvatar.file);
+        } else {
+            formData.append('avatar_type', 'custom');
+            formData.append('avatar_file', selectedAvatar.file);
+        }
+
+        // 显示加载状态
+        var $btn = $(this);
+        var originalText = $btn.html();
+        $btn.html('<i class="fas fa-spinner fa-spin"></i> 上传中...').prop('disabled', true);
+
+        $.ajax({
+            url: '/update_avatar',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    $('#avatarImage').attr('src', response.avatar_url + '?t=' + new Date().getTime());
+                    currentAvatar = response.avatar_file;
+                    selectedAvatar = response.avatar_file;
+                    closeModal();
+                    showMessage('头像更新成功！', 'success');
+                } else {
+                    showMessage('头像更新失败：' + response.message, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('上传失败:', error);
+                showMessage('头像更新失败，请稍后再试', 'error');
+            },
+            complete: function() {
+                $btn.html(originalText).prop('disabled', false);
+            }
+        });
+    });
+
+    // 重置为默认头像 - 直接更换，不进模态框
+    $('#resetAvatarBtn').on('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        if (confirm('确定要重置为默认头像吗？')) {
+            // 显示加载状态
+            var $btn = $(this);
+            var originalHtml = $btn.html();
+            $btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+            $.ajax({
+                url: '/reset_avatar',
+                type: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        $('#avatarImage').attr('src', response.avatar_url + '?t=' + new Date().getTime());
+                        currentAvatar = response.avatar_file;
+                        showMessage('已重置为默认头像', 'success');
+                    } else {
+                        showMessage('重置失败：' + response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showMessage('重置失败，请稍后再试', 'error');
+                },
+                complete: function() {
+                    $btn.html(originalHtml).prop('disabled', false);
+                }
+            });
+        }
+    });
+
+    // 修改密码模态框
+    $('#changePasswordBtn').on('click', function() {
+        $('#passwordModal').fadeIn(300);
+        $('#passwordForm')[0].reset();
+        $('#passwordStrength').removeClass().empty();
+        $('#passwordMessage').empty();
+    });
+
+    // 关闭密码模态框
+    $('#closePasswordModalBtn, #cancelPasswordBtn').on('click', function() {
+        $('#passwordModal').fadeOut(300);
+    });
+
+    $(window).on('click', function(e) {
+        if ($(e.target).hasClass('password-modal')) {
+            $('#passwordModal').fadeOut(300);
+        }
+    });
+
+    // 密码显示切换
+    $('#toggleOldPassword').on('click', function() {
+        var input = $('#oldPassword');
+        var icon = $(this).find('i');
+        if (input.attr('type') === 'password') {
+            input.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            input.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+
+    $('#toggleNewPassword').on('click', function() {
+        var input = $('#newPassword');
+        var icon = $(this).find('i');
+        if (input.attr('type') === 'password') {
+            input.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            input.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+
+    $('#toggleConfirmPassword').on('click', function() {
+        var input = $('#confirmPassword');
+        var icon = $(this).find('i');
+        if (input.attr('type') === 'password') {
+            input.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            input.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+
+    // 密码强度检测
+    $('#newPassword').on('input', function() {
+        var password = $(this).val();
+        var strength = checkPasswordStrength(password);
+        var $strength = $('#passwordStrength');
+
+        $strength.removeClass();
+
+        if (password.length === 0) {
+            $strength.empty();
+            return;
+        }
+
+        if (strength === 'weak') {
+            $strength.addClass('password-strength strength-weak').html('<i class="fas fa-exclamation-triangle"></i> 密码强度：弱');
+        } else if (strength === 'medium') {
+            $strength.addClass('password-strength strength-medium').html('<i class="fas fa-exclamation-circle"></i> 密码强度：中');
+        } else {
+            $strength.addClass('password-strength strength-strong').html('<i class="fas fa-check-circle"></i> 密码强度：强');
+        }
+    });
+
+    function checkPasswordStrength(password) {
+        if (password.length < 6) return 'weak';
+
+        var hasLetter = /[a-zA-Z]/.test(password);
+        var hasNumber = /\d/.test(password);
+        var hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        if (hasLetter && hasNumber && hasSpecial && password.length >= 8) {
+            return 'strong';
+        } else if ((hasLetter && hasNumber) || (hasLetter && hasSpecial) || (hasNumber && hasSpecial)) {
+            return 'medium';
+        } else {
+            return 'weak';
+        }
+    }
+
+    // 密码模态框内显示消息
+    function showPasswordMessage(text, type) {
+        var icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        var message = '<div class="alert alert-' + type + '">' +
+                      '<i class="fas fa-' + icon + '"></i>' +
+                      '<span>' + text + '</span>' +
+                      '</div>';
+        $('#passwordMessage').html(message);
+        setTimeout(function() {
+            $('#passwordMessage .alert').fadeOut('slow', function() {
+                $(this).remove();
+            });
+        }, 3000);
+    }
+
+    // 确认修改密码
+    $('#confirmPasswordBtn').on('click', function() {
+        var oldPassword = $('#oldPassword').val();
+        var newPassword = $('#newPassword').val();
+        var confirmPassword = $('#confirmPassword').val();
+
+        // 验证
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            showPasswordMessage('请填写所有密码字段', 'error');
+            return;
+        }
+
+        // 验证新密码格式
+        var passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,20}$/;
+        if (!passwordRegex.test(newPassword)) {
+            showPasswordMessage('新密码必须为6-20位，且包含字母和数字！', 'error');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            showPasswordMessage('两次输入的新密码不一致', 'error');
+            return;
+        }
+
+        if (oldPassword === newPassword) {
+            showPasswordMessage('新密码不能与原密码相同', 'error');
+            return;
+        }
+
+        // 显示加载状态
+        var $btn = $(this);
+        var originalText = $btn.html();
+        $btn.html('<i class="fas fa-spinner fa-spin"></i> 修改中...').prop('disabled', true);
+
+        $.ajax({
+            url: '/change_password',
+            type: 'POST',
+            data: {
+                old_password: oldPassword,
+                new_password: newPassword
+            },
+            success: function(response) {
+                if (response.success) {
+                    showPasswordMessage('密码修改成功！', 'success');
+                    setTimeout(function() {
+                        $('#passwordModal').fadeOut(300);
+                        $('#passwordForm')[0].reset();
+                    }, 1500);
+                } else {
+                    showPasswordMessage('密码修改失败：' + response.message, 'error');
+                }
+            },
+            error: function() {
+                showPasswordMessage('密码修改失败，请稍后再试', 'error');
+            },
+            complete: function() {
+                $btn.html(originalText).prop('disabled', false);
+            }
+        });
+    });
+
+    // 表单提交验证
+    $('#profileForm').on('submit', function(e) {
+        e.preventDefault();
+
+        // 获取表单数据
+        var nickname = $('#nickname').val();
+        var email = $('#email').val();
+        var phone = $('#phone').val();
+        var age = $('#age').val();
+        var gender = $('input[name="gender"]:checked').val();
+
+        // 昵称验证
+        if (nickname && (nickname.length < 2 || nickname.length > 20)) {
+            showMessage('昵称长度必须在2-20个字符之间！', 'error');
+            return;
+        }
+
+        // 邮箱验证
+        if (email) {
+            var emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(email)) {
+                showMessage('邮箱格式不正确！', 'error');
+                return;
+            }
+        }
+
+        // 手机号验证
+        if (phone) {
+            var phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(phone)) {
+                showMessage('手机号码格式不正确！', 'error');
+                return;
+            }
+        }
+
+        // 年龄验证
+        if (age) {
+            age = parseInt(age);
+            if (isNaN(age) || age < 1 || age > 120) {
+                showMessage('年龄必须在1-120岁之间！', 'error');
+                return;
+            }
+        }
+
+        // 性别验证
+        if (!gender) {
+            showMessage('请选择性别！', 'error');
+            return;
+        }
+
+        // 提交表单
+        var formData = $(this).serialize();
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    showMessage(response.message, 'success');
+                    // 更新页面上的昵称显示
+                    if (nickname) {
+                        $('.profile-header h2').text(nickname);
+                    }
+                } else {
+                    showMessage(response.message, 'error');
+                }
+            },
+            error: function() {
+                showMessage('保存失败，请稍后再试', 'error');
+            }
+        });
+    });
+
+    // 显示消息（主界面）
+    function showMessage(text, type) {
+        var icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        var message = '<div class="alert alert-' + type + '">' +
+                      '<i class="fas fa-' + icon + '"></i>' +
+                      '<span>' + text + '</span>' +
+                      '</div>';
+
+        $('#message').html(message);
+
+        setTimeout(function() {
+            $('#message .alert').fadeOut('slow', function() {
+                $(this).remove();
+            });
+        }, 3000);
+    }
+
+    // 输入框实时验证提示
+    $('#nickname').on('input', function() {
+        var val = $(this).val();
+        if (val && (val.length < 2 || val.length > 20)) {
+            $(this).css('border-color', '#ef4444');
+        } else {
+            $(this).css('border-color', '#e2e8f0');
+        }
+    });
+
+    $('#email').on('input', function() {
+        var val = $(this).val();
+        if (val) {
+            var emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(val)) {
+                $(this).css('border-color', '#ef4444');
+            } else {
+                $(this).css('border-color', '#10b981');
+            }
+        } else {
+            $(this).css('border-color', '#e2e8f0');
+        }
+    });
+
+    $('#phone').on('input', function() {
+        var val = $(this).val();
+        if (val) {
+            var phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(val)) {
+                $(this).css('border-color', '#ef4444');
+            } else {
+                $(this).css('border-color', '#10b981');
+            }
+        } else {
+            $(this).css('border-color', '#e2e8f0');
+        }
+    });
+
+    $('#age').on('input', function() {
+        var val = parseInt($(this).val());
+        if ($(this).val() && (isNaN(val) || val < 1 || val > 120)) {
+            $(this).css('border-color', '#ef4444');
+        } else if (!isNaN(val) && val >= 1 && val <= 120) {
+            $(this).css('border-color', '#10b981');
+        } else {
+            $(this).css('border-color', '#e2e8f0');
+        }
+    });
+});
+</script>
+{% endblock %}

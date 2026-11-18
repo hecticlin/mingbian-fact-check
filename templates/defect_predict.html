@@ -1,0 +1,1960 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<style>
+    .detection-container { max-width:1400px; margin:0 auto; padding:20px 30px 50px; }
+
+    /* ── 英雄区 ── */
+    .hero-banner {
+        background: linear-gradient(135deg,#ffffff 0%,#f3f9ff 100%);
+        border-radius:48px; padding:40px 50px; margin-bottom:40px;
+        box-shadow:0 30px 50px -20px rgba(0,45,85,.25);
+        border:1px solid rgba(255,255,255,.9);
+        display:flex; flex-wrap:wrap; align-items:center; gap:30px;
+        position:relative; overflow:hidden;
+    }
+    .hero-banner::before {
+        content:''; position:absolute; top:-30%; right:-5%;
+        width:500px; height:500px;
+        background:radial-gradient(circle,rgba(26,73,129,.06) 0%,transparent 70%);
+        border-radius:50%; pointer-events:none;
+    }
+    .hero-text-side { flex:1 1 50%; min-width:280px; z-index:2; }
+    .hero-badge {
+        display:inline-flex; align-items:center;
+        background:rgba(26,73,129,.08); color:#1A4981;
+        font-weight:600; font-size:.9rem; letter-spacing:1px;
+        padding:8px 20px; border-radius:50px; margin-bottom:20px;
+        border:1px solid rgba(26,73,129,.15);
+    }
+    .hero-badge i { margin-right:8px; color:#2b6ca3; }
+    .hero-title {
+        font-size:2.8rem; font-weight:800; line-height:1.1; margin-bottom:16px;
+        background:linear-gradient(145deg,#0b2a47,#1A4981,#2f6ea5);
+        -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .hero-desc {
+        font-size:1.05rem; color:#2c405b; line-height:1.75; margin-bottom:24px;
+        border-left:4px solid #1A4981; padding-left:18px; opacity:.9;
+    }
+    .hero-image-side { flex:1 1 38%; text-align:center; z-index:2; }
+    .hero-image-frame {
+        display:inline-block; border-radius:30px;
+        background:linear-gradient(145deg,#fff,#f0f7ff); padding:12px;
+        box-shadow:0 30px 45px -20px #1A4981;
+        transition:all .4s cubic-bezier(.165,.84,.44,1);
+    }
+    .hero-image-frame:hover { transform:scale(1.03) translateY(-8px); }
+    .hero-image-frame img { max-width:100%; border-radius:24px; display:block; }
+
+    /* ── 检测模式选择卡片 ── */
+    .mode-cards {
+        display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:36px;
+    }
+    .mode-card {
+        border-radius:24px; padding:22px 26px; cursor:pointer;
+        border:2px solid transparent; transition:all .25s; position:relative; overflow:hidden;
+        background:#fff;
+    }
+    .mode-card::before {
+        content:''; position:absolute; inset:0; opacity:0; transition:opacity .25s;
+        border-radius:22px;
+    }
+    .mode-card.llm-card { border-color:rgba(26,73,129,.2); }
+    .mode-card.llm-card::before { background:linear-gradient(135deg,#e8f0fe,#f0f7ff); }
+    .mode-card.mmr-card { border-color:rgba(124,58,237,.2); }
+    .mode-card.mmr-card::before { background:linear-gradient(135deg,#ede8fe,#f5f0ff); }
+    .mode-card.active-llm { border-color:#1A4981 !important; box-shadow:0 8px 24px -8px rgba(26,73,129,.35); }
+    .mode-card.active-llm::before { opacity:1; }
+    .mode-card.active-mmr { border-color:#7c3aed !important; box-shadow:0 8px 24px -8px rgba(124,58,237,.35); }
+    .mode-card.active-mmr::before { opacity:1; }
+    .mode-card:hover { transform:translateY(-3px); }
+    .mode-card-inner { position:relative; z-index:1; display:flex; align-items:flex-start; gap:16px; }
+    .mode-icon {
+        width:52px; height:52px; border-radius:16px; display:flex;
+        align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;
+    }
+    .llm-card .mode-icon { background:rgba(26,73,129,.1); color:#1A4981; }
+    .mmr-card .mode-icon { background:rgba(124,58,237,.1); color:#7c3aed; }
+    .mode-card-title { font-size:1.05rem; font-weight:700; margin-bottom:5px; }
+    .llm-card .mode-card-title { color:#1A4981; }
+    .mmr-card .mode-card-title { color:#7c3aed; }
+    .mode-card-desc { font-size:.84rem; color:#6b7a95; line-height:1.6; }
+    .mode-card-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .mode-tag {
+        font-size:.74rem; font-weight:600; padding:3px 10px; border-radius:99px;
+    }
+    .llm-card .mode-tag { background:rgba(26,73,129,.1); color:#1A4981; }
+    .mmr-card .mode-tag { background:rgba(124,58,237,.1); color:#7c3aed; }
+    .mode-radio { position:absolute; top:16px; right:16px; z-index:2; }
+    .mode-radio input { display:none; }
+    .mode-radio-dot {
+        width:20px; height:20px; border-radius:50%; border:2px solid #d1d5db;
+        display:flex; align-items:center; justify-content:center; background:#fff; transition:all .2s;
+    }
+    .mode-card.active-llm .mode-radio-dot { border-color:#1A4981; background:#1A4981; }
+    .mode-card.active-mmr .mode-radio-dot { border-color:#7c3aed; background:#7c3aed; }
+    .mode-radio-dot::after {
+        content:''; width:8px; height:8px; border-radius:50%; background:#fff;
+        opacity:0; transition:opacity .2s;
+    }
+    .mode-card.active-llm .mode-radio-dot::after,
+    .mode-card.active-mmr .mode-radio-dot::after { opacity:1; }
+
+    /* ── 输入卡片 ── */
+    .input-card {
+        background:rgba(255,255,255,.88); backdrop-filter:blur(10px);
+        border-radius:40px; padding:40px 44px;
+        box-shadow:0 25px 50px -20px rgba(0,35,70,.28);
+        margin-bottom:30px; border:1px solid rgba(255,255,255,.7);
+    }
+    .input-label {
+        font-weight:600; color:#1A4981; font-size:1.05rem; margin-bottom:10px;
+        display:flex; align-items:center; gap:9px;
+    }
+    .input-label i {
+        background:rgba(26,73,129,.1); padding:7px; border-radius:12px; color:#1A4981;
+    }
+    .form-control-modern {
+        border:2px solid rgba(230,240,250,.9); border-radius:20px;
+        padding:14px 20px; font-size:1rem; transition:all .25s;
+        background:rgba(255,255,255,.9); width:100%; color:#1e2f40;
+    }
+    .form-control-modern:focus {
+        border-color:#1A4981; box-shadow:0 0 0 5px rgba(26,73,129,.1); outline:none;
+    }
+    .form-control-modern::placeholder { color:#9aafc9; }
+    textarea.form-control-modern { resize:vertical; min-height:160px; }
+
+    /* ── 图片上传 ── */
+    .upload-area {
+        border:2px dashed rgba(26,73,129,.28); border-radius:20px; padding:26px;
+        text-align:center; background:rgba(255,255,255,.7); transition:all .3s; cursor:pointer;
+    }
+    .upload-area:hover { border-color:#1A4981; background:#fff; transform:translateY(-2px); }
+    .upload-area.dragover { border-color:#28a745; background:rgba(40,167,69,.05); }
+    .upload-area.mmr-upload { border-color:rgba(124,58,237,.35); }
+    .upload-area.mmr-upload:hover { border-color:#7c3aed; }
+    .upload-placeholder i { font-size:2.5rem; color:#1A4981; opacity:.5; margin-bottom:10px; }
+    .upload-placeholder p { font-size:1rem; color:#1e2f40; margin-bottom:4px; }
+    .upload-placeholder small { color:#6c757d; }
+    .image-preview-list { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:12px; }
+    .image-preview-item { position:relative; width:130px; height:130px; border-radius:14px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.1); border:2px solid #fff; transition:all .2s; }
+    .image-preview-item:hover { transform:scale(1.05); }
+    .image-preview-item img { width:100%; height:100%; object-fit:cover; }
+    .image-preview-item .remove-image {
+        position:absolute; top:4px; right:4px; width:26px; height:26px;
+        background:rgba(220,53,69,.9); color:#fff; border-radius:50%; border:none;
+        display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transition:all .2s;
+    }
+    .image-preview-item:hover .remove-image { opacity:1; }
+    .btn-add-more {
+        background:linear-gradient(145deg,#f8f9fa,#e9ecef); border:1px dashed #adb5bd;
+        border-radius:40px; padding:7px 18px; color:#495057; font-size:.88rem; cursor:pointer; transition:all .2s;
+        display:inline-flex; align-items:center; gap:7px;
+    }
+    .btn-add-more:hover { border-color:#1A4981; color:#1A4981; }
+
+    /* MMR 图片必填提示 */
+    .mmr-required-tip {
+        display:none; margin-top:8px; padding:8px 14px;
+        background:rgba(124,58,237,.07); border-radius:12px;
+        border-left:3px solid #7c3aed; font-size:.84rem; color:#5b21b6;
+    }
+
+    /* ── 模式说明 ── */
+    .mode-tip {
+        display:none; margin-bottom:22px; border-radius:18px; padding:16px 20px;
+    }
+    .llm-tip { background:linear-gradient(135deg,#f0f7ff,#e8f4fd); border:1.5px solid rgba(26,73,129,.18); }
+    .mmr-tip { background:linear-gradient(135deg,#f5f0ff,#ede8fe); border:1.5px solid rgba(124,58,237,.2); }
+    .mode-tip-title { margin:0 0 8px; font-weight:700; font-size:.95rem; display:flex; align-items:center; gap:7px; }
+    .llm-tip .mode-tip-title { color:#1A4981; }
+    .mmr-tip .mode-tip-title { color:#5b21b6; }
+    .mode-tip ul { margin:0; padding-left:18px; font-size:.88rem; line-height:1.9; }
+    .llm-tip ul { color:#2c405b; }
+    .mmr-tip ul { color:#2c2050; }
+
+    /* ── 按钮 ── */
+    .action-buttons { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; margin:32px 0 24px; }
+    .btn-modern {
+        padding:14px 34px; border-radius:60px; font-weight:600; font-size:1.05rem;
+        border:none; transition:all .3s ease; display:inline-flex; align-items:center; gap:9px;
+        box-shadow:0 8px 18px -8px rgba(0,0,0,.2); cursor:pointer; position:relative; overflow:hidden;
+    }
+    .btn-modern::before {
+        content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+        background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent); transition:left .5s;
+    }
+    .btn-modern:hover::before { left:100%; }
+    .btn-modern.btn-llm { background:linear-gradient(145deg,#1A4981,#2b6ca3); color:#fff; }
+    .btn-modern.btn-llm:hover { background:linear-gradient(145deg,#123b66,#1f5680); transform:translateY(-3px); box-shadow:0 16px 28px -10px #1A4981; }
+    .btn-modern.btn-mmr { background:linear-gradient(145deg,#5b21b6,#7c3aed); color:#fff; }
+    .btn-modern.btn-mmr:hover { background:linear-gradient(145deg,#4c1d95,#6d28d9); transform:translateY(-3px); box-shadow:0 16px 28px -10px #5b21b6; }
+    .btn-modern.btn-info { background:linear-gradient(145deg,#1A4981,#2b6ca3); color:#fff; }
+    .btn-modern.btn-info:hover { transform:translateY(-3px); box-shadow:0 16px 28px -10px #1A4981; }
+    .btn-modern.btn-clear { background:linear-gradient(145deg,#6c757d,#868e96); color:#fff; }
+    .btn-modern.btn-clear:hover { transform:translateY(-3px); }
+    .btn-disabled { opacity:.55; cursor:not-allowed !important; transform:none !important; }
+    #submit_btn { display:none; }
+
+    /* ── 结果卡片 ── */
+    .result-card {
+        background:linear-gradient(145deg,#fff,#f9fdff); border-radius:36px;
+        padding:28px 36px; box-shadow:0 18px 32px -12px rgba(0,0,0,.1);
+        border:1px solid rgba(26,73,129,.12); margin-top:28px;
+    }
+    .result-label { font-size:2rem; font-weight:700; margin:0 14px; display:inline-block; }
+    .result-prob  { font-size:2rem; font-weight:600; display:inline-block; }
+    .result-placeholder { color:#b0c4de; font-size:1.2rem; font-weight:400; }
+    .modality-score { background:#f8faff; padding:14px; border-radius:14px; border:1px solid rgba(26,73,129,.08); }
+    .modality-score .progress { background:#e9ecef; border-radius:10px; overflow:hidden; height:7px; }
+    .modality-score .score-value { display:block; margin-top:6px; font-weight:600; color:#1e2f40; font-size:.88rem; text-align:right; }
+
+    /* ── 进度框（LLM & MMR 共用） ── */
+    .progress-box {
+        display:none; margin-top:20px; border-radius:18px;
+        border:1.5px solid rgba(26,73,129,.2); overflow:hidden;
+    }
+    .progress-box.mmr-style { border-color:rgba(124,58,237,.25); }
+    .progress-header {
+        padding:11px 18px; display:flex; align-items:center; gap:10px;
+    }
+    .llm-style .progress-header { background:#e8f0fe; }
+    .mmr-style .progress-header { background:#ede8fe; }
+    .progress-label { font-weight:600; font-size:.88rem; white-space:nowrap; }
+    .llm-style .progress-label { color:#1A4981; }
+    .mmr-style .progress-label { color:#5b21b6; }
+    .progress-track { flex:1; background:#c8d8f8; border-radius:99px; height:7px; overflow:hidden; }
+    .mmr-style .progress-track { background:#d8c8f8; }
+    .progress-fill {
+        height:100%; width:0%; border-radius:99px; transition:width .5s ease;
+    }
+    .llm-style .progress-fill { background:linear-gradient(90deg,#1A4981,#4a90d9); }
+    .mmr-style .progress-fill { background:linear-gradient(90deg,#5b21b6,#9333ea); }
+    .progress-pct { font-size:.8rem; white-space:nowrap; min-width:32px; }
+    .llm-style .progress-pct { color:#3a5f8a; }
+    .mmr-style .progress-pct { color:#6b21a8; }
+    .progress-step {
+        padding:9px 18px; font-size:.86rem;
+        border-bottom:1px solid rgba(26,73,129,.1);
+        display:flex; align-items:center; gap:7px;
+    }
+    .llm-style .progress-step { background:#f0f6ff; color:#2c4a72; }
+    .mmr-style .progress-step { background:#f5f0ff; color:#3b0764; border-bottom-color:rgba(124,58,237,.1); }
+    .log-stream {
+        background:#0d1117; color:#c9d1d9; font-family:monospace; font-size:.8rem;
+        padding:14px 18px; max-height:190px; overflow-y:auto; line-height:1.7;
+    }
+    .live-branches { padding:14px 18px; background:#f8faff; display:none; }
+    .mmr-style .live-branches { background:#f8f5ff; }
+
+    /* ── LLM 报告区 ── */
+    #llmReport { display:none; margin-top:20px; padding-top:20px; border-top:2px solid rgba(26,73,129,.1); }
+    .reasoning-section { margin-top:16px; border-top:2px dashed rgba(26,73,129,.15); padding-top:14px; }
+    .reasoning-section-title { font-weight:700; color:#1A4981; font-size:.9rem; margin-bottom:10px; display:flex; align-items:center; gap:7px; }
+    .reasoning-final-box { background:linear-gradient(135deg,#f0f7ff,#e8f0fe); border-radius:14px; padding:14px 18px; margin-bottom:12px; border-left:4px solid #1A4981; }
+    .reasoning-final-text { color:#1e3050; font-size:.88rem; line-height:1.85; white-space:pre-line; margin:0; }
+    .branch-card { background:#fff; border-radius:12px; padding:11px 14px; margin-bottom:8px; border-left:4px solid #a0aec0; box-shadow:0 2px 6px -3px rgba(0,35,70,.07); }
+    .branch-card.verdict-real { border-left-color:#38a169; }
+    .branch-card.verdict-fake { border-left-color:#e53e3e; }
+    .branch-header { display:flex; justify-content:space-between; align-items:flex-start; gap:7px; margin-bottom:5px; }
+    .branch-label { font-weight:700; font-size:.86rem; color:#1A4981; }
+    .branch-summary { font-size:.74rem; color:#94a3b8; max-width:55%; text-align:right; line-height:1.4; }
+    .branch-reason { font-size:.85rem; color:#2e405b; line-height:1.7; margin:0; }
+    .branch-disagree { margin-top:7px; padding:8px 11px; background:#fff8f0; border-radius:9px; border-left:3px solid #fd7e14; font-size:.79rem; color:#7b4b00; line-height:1.6; }
+    .extraction-overview { background:#f0f7ff; border-radius:12px; padding:12px 16px; font-size:.84rem; color:#2c4a72; }
+    .shortcircuit-badge { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; background:#f0fff4; border:1.5px solid #48bb78; border-radius:28px; color:#276749; font-size:.83rem; font-weight:600; margin-bottom:10px; }
+
+    /* ── MMR 报告区 ── */
+    #mmrReport { display:none; margin-top:20px; padding-top:20px; border-top:2px solid rgba(124,58,237,.15); }
+    .mmr-sub-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin-bottom:14px; }
+    .mmr-reasoning-box { background:linear-gradient(135deg,#f5f0ff,#ede8fe); border-radius:14px; padding:14px 18px; border-left:4px solid #7c3aed; margin-bottom:11px; }
+    .mmr-reasoning-title { font-weight:700; color:#5b21b6; font-size:.88rem; margin:0 0 10px; display:flex; align-items:center; gap:6px; }
+    .mmr-evidence-box { background:#f8f5ff; border-radius:14px; padding:12px 16px; }
+    .mmr-evidence-title { font-weight:700; color:#5b21b6; font-size:.88rem; margin:0 0 7px; display:flex; align-items:center; gap:6px; }
+
+    /* ── 历史弹窗（data_excel 风格）── */
+    @keyframes fadeIn  { from{opacity:0}              to{opacity:1} }
+    @keyframes slideUp { from{opacity:0;transform:translate(-50%,-40%)} to{opacity:1;transform:translate(-50%,-50%)} }
+    @keyframes modalBgFade   { from{opacity:0} to{opacity:1} }
+    @keyframes modalSlideUp  { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+    /* 历史记录主弹窗 */
+    .modal-modern-overlay { position:fixed;inset:0;background:rgba(0,20,40,.6);backdrop-filter:blur(8px);z-index:999;animation:fadeIn .2s; }
+    .modal-modern { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(95%,1020px);max-height:88vh;background:#fff;border-radius:36px;box-shadow:0 40px 70px -20px #0a2a4a;z-index:1000;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.7);animation:slideUp .3s;overflow:hidden; }
+    .modal-modern-header { padding:22px 28px 14px;border-bottom:2px solid rgba(26,73,129,.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+    .modal-modern-header h3 { font-size:1.4rem;font-weight:700;color:#1e3b5c;margin:0;display:flex;align-items:center;gap:10px; }
+    .modal-modern-header h3 i { background:rgba(26,73,129,.1);padding:10px;border-radius:16px;font-size:1.1rem;color:#2563eb; }
+    .modal-modern-body { padding:18px 24px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:#1A4981 #e0e9f2; }
+    .modal-modern-body::-webkit-scrollbar { width:5px; }
+    .modal-modern-body::-webkit-scrollbar-thumb { background:#1A4981;border-radius:10px; }
+    .modal-modern-footer { padding:14px 24px;border-top:1px solid rgba(26,73,129,.1);text-align:right;flex-shrink:0; }
+    .btn-modal { padding:9px 22px;border-radius:22px;border:none;font-weight:600;cursor:pointer;transition:all .2s; }
+    .btn-modal-danger { background:#e53e3e;color:#fff; }
+    .btn-modal-danger:hover { background:#c53030; }
+
+    /* 筛选 Tab */
+    .hist-tab-group { display:flex;gap:6px;background:#f0f5fa;padding:4px;border-radius:60px;border:1px solid #e2eaf5;margin-bottom:16px; }
+    .hist-tab-btn { padding:7px 20px;border:none;background:transparent;border-radius:40px;font-size:.88rem;font-weight:500;color:#5f6f8a;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px; }
+    .hist-tab-btn:hover { color:#1e3b5c; }
+    .hist-tab-btn.active { background:#fff;color:#2563eb;box-shadow:0 4px 12px rgba(37,99,235,.15); }
+
+    /* 表格 */
+    .hist-table-wrap { overflow-x:auto;border-radius:18px;background:#f8fafd;border:1px solid #e2eaf5;max-height:420px;overflow-y:auto; }
+    .hist-table-wrap::-webkit-scrollbar { width:4px;height:4px; }
+    .hist-table-wrap::-webkit-scrollbar-thumb { background:#b0c4de;border-radius:6px; }
+    .hist-table { width:100%;border-collapse:collapse;font-size:.9rem; }
+    .hist-table thead th { background:#f0f5fa;color:#1e3b5c;font-weight:600;font-size:.85rem;padding:13px 16px;text-align:left;white-space:nowrap;border-bottom:2px solid #d9e2ef;position:sticky;top:0;z-index:10; }
+    .hist-table thead th i { margin-right:5px;color:#6b7f9a;font-size:.82rem; }
+    .hist-table tbody tr { border-bottom:1px solid #e2eaf5;transition:background .15s; }
+    .hist-table tbody tr:hover { background:#f0f7ff; }
+    .hist-table tbody td { padding:13px 16px;color:#1f2b3a;vertical-align:middle; }
+    .hist-badge { display:inline-block;padding:5px 14px;border-radius:40px;font-size:.8rem;font-weight:600;text-align:center;min-width:80px; }
+    .hist-badge-real { background:#e1f7ed;color:#0b6e42; }
+    .hist-badge-fake { background:#fee9e7;color:#b02a37; }
+    .hist-badge-unk  { background:#fef3c7;color:#92400e; }
+    .hist-accuracy  { font-weight:700;color:#2563eb; }
+    .hist-type-tag  { display:inline-flex;align-items:center;gap:4px;font-size:.75rem;padding:3px 10px;border-radius:20px;font-weight:600; }
+    .hist-type-llm  { background:#eff6ff;color:#1d4ed8; }
+    .hist-type-mmr  { background:#f5f3ff;color:#6d28d9; }
+    .hist-type-std  { background:#f0fdf4;color:#166534; }
+    .hist-empty { text-align:center;padding:48px 20px;color:#8f9fb1; }
+    .hist-empty i { font-size:2.5rem;display:block;margin-bottom:12px;opacity:.4; }
+    .btn-hist-view { background:linear-gradient(145deg,#fff,#f5f9ff);border:1px solid #d0e0f5;color:#2d4b75;padding:6px 14px;border-radius:40px;font-size:.8rem;font-weight:500;cursor:pointer;transition:all .25s;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 8px rgba(37,99,235,.08); }
+    .btn-hist-view:hover { background:linear-gradient(145deg,#2563eb,#1d4ed8);border-color:#2563eb;color:#fff;transform:translateY(-1px);box-shadow:0 8px 16px -5px rgba(37,99,235,.4); }
+
+    /* 详情弹窗（data_excel 风格）*/
+    .detail-modal-bg { display:none;position:fixed;z-index:2100;left:0;top:0;width:100%;height:100%;background:rgba(15,30,50,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;animation:modalBgFade .3s; }
+    .detail-modal-bg.open { display:flex; }
+    .detail-modal-box { background:#fff;padding:2rem;width:90%;max-width:660px;border-radius:28px;box-shadow:0 40px 60px -15px #0b1d31;animation:modalSlideUp .35s cubic-bezier(.16,1,.3,1);max-height:88vh;overflow-y:auto;position:relative; }
+    .detail-modal-box h3 { margin:0 0 1.2rem;color:#1e3b5c;display:flex;align-items:center;gap:10px;font-size:1.4rem;font-weight:700;border-bottom:2px solid #eef3fc;padding-bottom:.9rem; }
+    .detail-modal-box h3 i { color:#2563eb;background:#eef3fc;padding:9px;border-radius:14px;font-size:1.2rem; }
+    .detail-modal-close { position:absolute;right:1.3rem;top:1.3rem;font-size:1.6rem;color:#9aabbc;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#f5f9ff;border:none;transition:all .2s; }
+    .detail-modal-close:hover { color:#1e2f4a;background:#e9f0f8;transform:rotate(90deg); }
+    .detail-card-wrap { background:#f8fbfe;border-radius:20px;padding:1.2rem;margin-bottom:1.2rem;border:1px solid #e6eefc; }
+    .detail-row { margin-bottom:1rem;display:flex;flex-direction:column; }
+    .detail-row:last-child { margin-bottom:0; }
+    .detail-lbl { font-weight:600;color:#1e3b5c;margin-bottom:.35rem;display:flex;align-items:center;gap:7px;font-size:.82rem;text-transform:uppercase;letter-spacing:.3px; }
+    .detail-lbl i { color:#2563eb;font-size:.9rem;width:18px; }
+    .detail-val { background:#fff;padding:.85rem 1rem;border-radius:14px;color:#1f2b3a;line-height:1.65;word-break:break-word;border:1px solid #d9e6f5;font-size:.9rem; }
+    .detail-val.scrollable { max-height:220px;overflow-y:auto;white-space:pre-wrap;font-family:inherit; }
+    .detail-reasoning { background:#f0f6ff;border-radius:14px;padding:1rem;margin-top:.8rem;border-left:4px solid #2563eb; }
+    .detail-reasoning-title { font-weight:700;color:#1e3b5c;font-size:.82rem;margin-bottom:.5rem;display:flex;align-items:center;gap:6px; }
+    .verdict-pill { display:inline-block;padding:4px 16px;border-radius:99px;font-weight:700;font-size:.9rem;border:1.5px solid; }
+    .verdict-real { color:#38a169;border-color:#48bb78; }
+    .verdict-fake { color:#e53e3e;border-color:#fc8181; }
+    .verdict-unk  { color:#d69e2e;border-color:#f6ad55; }
+    .detail-section { background:#f8faff;border-radius:14px;padding:14px 16px;margin-bottom:10px; }
+    .detail-section-title { color:#1A4981;font-size:.88rem;font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:6px; }
+
+    /* ── 加载遮罩 ── */
+    .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.85); backdrop-filter:blur(8px); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+    .loading-spinner { width:52px; height:52px; border:5px solid #e2e8f0; border-top-color:#1A4981; border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .loading-text { font-size:1.1rem; font-weight:600; color:#1A4981; }
+    .loading-progress { font-size:.9rem; color:#718096; }
+
+    /* ── 分析中提示条 ── */
+
+    /* ── LLM/MMR 结果区切换 ── */
+    #llmResultArea, #mmrResultArea { transition: opacity .2s; }
+
+    /* ── LLM 分支手风琴 ── */
+    .branch-accordion { margin-bottom:8px; border-radius:14px; overflow:hidden; border:1px solid #e8eef6; }
+    .branch-accordion-head {
+        display:flex; align-items:center; justify-content:space-between;
+        padding:12px 16px; cursor:pointer; transition:background .15s;
+        font-weight:600; font-size:.88rem; gap:8px;
+    }
+    .branch-accordion-head:hover { filter:brightness(.97); }
+    .branch-accordion-head .branch-chevron {
+        font-size:.7rem; color:#a0aec0; transition:transform .25s; flex-shrink:0;
+    }
+    .branch-accordion-head.expanded .branch-chevron { transform:rotate(180deg); }
+    .branch-accordion-body {
+        max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s ease;
+        padding:0 16px; background:#fff;
+    }
+    .branch-accordion-body.show {
+        max-height:600px; padding:12px 16px 14px;
+    }
+
+    /* ── 分析中提示条 ── */
+    .analysis-toast {
+        display:none;
+        position:fixed; top:0; left:0; right:0; z-index:9999;
+        padding:14px 24px;
+        background:linear-gradient(135deg,#1e3a5f,#0f172a);
+        color:#fff;
+        font-size:.92rem;
+        font-weight:500;
+        text-align:center;
+        box-shadow:0 4px 24px rgba(0,0,0,.25);
+        animation: toastSlideDown .35s ease;
+        line-height:1.6;
+    }
+    .analysis-toast.show { display:block; }
+    .analysis-toast i { margin-right:8px; color:#fbbf24; }
+    .analysis-toast .toast-ok { color:#34d399; font-weight:600; }
+    .analysis-toast .toast-warn { color:#fbbf24; font-weight:600; }
+    @keyframes toastSlideDown {
+        from { transform:translateY(-100%); opacity:0; }
+        to   { transform:translateY(0);     opacity:1; }
+    }
+
+    /* ── 响应式 ── */
+    @media(max-width:768px) {
+        .hero-banner { padding:28px 24px; border-radius:30px; }
+        .hero-title { font-size:2rem; }
+        .input-card { padding:24px 20px; border-radius:28px; }
+        .mode-cards { grid-template-columns:1fr; }
+        .mmr-sub-grid { grid-template-columns:1fr; }
+    }
+
+    /* 使用说明区 */
+    .how-to-section {
+        margin-bottom:28px; padding:20px 24px;
+        background:linear-gradient(135deg,#fafbff,#f3f6ff);
+        border-radius:22px; border:1px solid rgba(26,73,129,.1);
+    }
+    .how-to-title { font-size:.95rem; font-weight:700; color:#1A4981; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+    .how-to-steps { display:flex; gap:0; flex-wrap:wrap; }
+    .how-step {
+        display:flex; align-items:flex-start; gap:10px;
+        padding:0 20px 0 0; flex:1; min-width:160px; position:relative;
+    }
+    .how-step:not(:last-child)::after {
+        content:'→'; position:absolute; right:4px; top:4px; color:#93c5fd; font-size:1rem;
+    }
+    .step-num { width:26px; height:26px; border-radius:50%; background:#1A4981; color:#fff; font-size:.78rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+    .step-text { font-size:.84rem; color:#374151; line-height:1.55; }
+    .step-text b { color:#1A4981; }
+    /* ── 分析中顶部警告条 ─────────────────────────── */
+    .analysis-warning-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        background: linear-gradient(135deg, #1e3a5f, #0f172a);
+        color: #fff;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: .9rem;
+        font-weight: 500;
+        box-shadow: 0 4px 20px rgba(0,0,0,.25);
+        animation: warnSlideIn .35s ease;
+        letter-spacing: .2px;
+    }
+    .analysis-warning-bar i {
+        font-size: 1.1rem;
+        animation: warnPulse 1.5s ease-in-out infinite;
+    }
+    .analysis-warning-bar .warn-ok {
+        background: rgba(255,255,255,.15);
+        border: 1px solid rgba(255,255,255,.25);
+        color: #fff;
+        padding: 4px 16px;
+        border-radius: 8px;
+        font-size: .8rem;
+        font-weight: 600;
+        cursor: default;
+        margin-left: 8px;
+    }
+    .analysis-warning-bar .warn-ok i { animation: none; font-size: .75rem; }
+    @keyframes warnSlideIn { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+    @keyframes warnPulse { 0%,100% { opacity: .7; } 50% { opacity: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 分析中顶部提示条 -->
+<div id="analysisToast" class="analysis-toast">
+    <i class="fas fa-flask fa-spin"></i>
+    正在分析中 —
+    <span class="toast-ok">可切换检测卡片</span>，
+    <span class="toast-warn">请勿离开当前页面</span>，否则分析将中断！
+</div>
+
+<div class="detection-container">
+
+    <!-- ── 英雄区 ─────────────────────────────────────────── -->
+    <div class="hero-banner">
+        <div class="hero-text-side">
+            <span class="hero-badge"><i class="fas fa-robot"></i> AI 智能检测 · 零样本多模态</span>
+            <h1 class="hero-title">新闻真实性检测</h1>
+            <p class="hero-desc">
+                支持两种检测方式：<b>纯文本深度分析</b>适合只有文字的新闻；
+                <b>图文多模态检测</b>适合有配图的新闻，效果更精准。
+            </p>
+        </div>
+        <div class="hero-image-side">
+            <div class="hero-image-frame">
+                <img src="../static/img/index.jpeg" alt="新闻检测"
+                     onerror="this.src='https://placehold.co/480x360/1A4981/white?text=AI+检测'">
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 主检测卡片 ───────────────────────────────────────── -->
+    <div class="input-card">
+
+        <!-- ── 使用说明 ── -->
+        <div class="how-to-section">
+            <p class="how-to-title"><i class="fas fa-circle-info"></i> 使用流程</p>
+            <div class="how-to-steps">
+                <div class="how-step">
+                    <span class="step-num">1</span>
+                    <span class="step-text"><b>选择检测方式</b><br>纯文本 或 图文多模态</span>
+                </div>
+                <div class="how-step">
+                    <span class="step-num">2</span>
+                    <span class="step-text"><b>填写内容</b><br>粘贴新闻标题和正文</span>
+                </div>
+                <div class="how-step">
+                    <span class="step-num">3</span>
+                    <span class="step-text"><b>上传图片</b><br>图文模式需上传配图</span>
+                </div>
+                <div class="how-step">
+                    <span class="step-num">4</span>
+                    <span class="step-text"><b>查看结果</b><br>实时进度 + 详细分析</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── 检测方式选择（双卡片） ── -->
+        <div class="mode-cards">
+
+            <div class="mode-card llm-card active-llm" id="cardLLM" onclick="setMode('llm')">
+                <div class="mode-radio"><div class="mode-radio-dot"></div></div>
+                <div class="mode-card-inner">
+                    <div class="mode-icon"><i class="fas fa-brain"></i></div>
+                    <div>
+                        <div class="mode-card-title">纯文本深度分析</div>
+                        <div class="mode-card-desc">适合只有文字的新闻。三层事件抽取 + 两阶段验证 + 联网搜索核查，分析全面详尽。</div>
+                        <div class="mode-card-tags">
+                            <span class="mode-tag">事件抽取</span>
+                            <span class="mode-tag">两阶段验证</span>
+                            <span class="mode-tag">联网搜索</span>
+                            <span class="mode-tag">30~90秒</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-card mmr-card" id="cardMMR" onclick="setMode('mmr')">
+                <div class="mode-radio"><div class="mode-radio-dot"></div></div>
+                <div class="mode-card-inner">
+                    <div class="mode-icon"><i class="fas fa-photo-film"></i></div>
+                    <div>
+                        <div class="mode-card-title">图文多模态检测</div>
+                        <div class="mode-card-desc">适合有配图的新闻。Qwen2.5-VL 视觉语言模型同时分析图文，识别图文矛盾与伪造痕迹。</div>
+                        <div class="mode-card-tags">
+                            <span class="mode-tag">Qwen2.5-VL</span>
+                            <span class="mode-tag">图文一致性</span>
+                            <span class="mode-tag">博查检索</span>
+                            <span class="mode-tag">需上传图片</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── 说明提示 ── -->
+        <div class="mode-tip llm-tip" id="llmTip" style="display:flex;flex-direction:column;">
+            <p class="mode-tip-title"><i class="fas fa-circle-info"></i> 纯文本深度分析说明</p>
+            <ul>
+                <li>自动提取<b>主干事件、次要事件、隐含信息</b>（六类型）进行层级递进分析</li>
+                <li>每个分支经<b>两阶段验证</b>（初判 + 批判复核），大幅减少误判</li>
+                <li>结合 DeepSeek <b>联网搜索</b>，优先核查权威媒体与辟谣平台</li>
+                <li>耗时约 <b>30 ~ 90 秒</b>，适合纯文字新闻的深度溯源分析</li>
+            </ul>
+        </div>
+        <div class="mode-tip mmr-tip" id="mmrTip">
+            <p class="mode-tip-title"><i class="fas fa-circle-info"></i> 图文多模态检测说明</p>
+            <ul>
+                <li><b>必须上传图片</b>，系统将同时分析图片内容与文字描述</li>
+                <li>分三个子任务独立评分：<b>文本真实性 · 图像真实性 · 图文一致性</b></li>
+                <li>基于 <b>Qwen2.5-VL</b> 大模型，识别 PS 痕迹、AI 生成图、断章取义</li>
+                <li>结合 <b>博查 API</b> 实时检索辟谣信息作为外部证据</li>
+                <li>耗时约 <b>15 ~ 45 秒</b></li>
+            </ul>
+        </div>
+
+        <!-- ── LLM 输入区（独立） ── -->
+        <div id="llmInputArea">
+            <div style="margin-bottom:22px;">
+                <div class="input-label">
+                    <i class="fas fa-heading"></i>
+                    新闻标题
+                    <span style="margin-left:6px;font-size:.78rem;color:#718096;font-weight:400;">（可不填）</span>
+                </div>
+                <input id="llmTitle" type="text" class="form-control-modern"
+                       placeholder="例如：科学家发现全新能源物质" autocomplete="off">
+            </div>
+            <div style="margin-bottom:22px;">
+                <div class="input-label"><i class="fas fa-file-lines"></i> 正文内容</div>
+                <textarea id="llmContent" class="form-control-modern" rows="7"
+                          placeholder="请粘贴或输入新闻正文内容..."></textarea>
+            </div>
+        </div>
+
+        <!-- ── MMR 输入区（独立） ── -->
+        <div id="mmrInputArea" style="display:none;">
+            <div style="margin-bottom:22px;">
+                <div class="input-label">
+                    <i class="fas fa-heading"></i>
+                    新闻标题
+                    <span style="margin-left:6px;font-size:.78rem;color:#718096;font-weight:400;">（可不填）</span>
+                </div>
+                <input id="mmrTitle" type="text" class="form-control-modern"
+                       placeholder="例如：网传某地发生重大事件" autocomplete="off">
+            </div>
+            <div style="margin-bottom:22px;">
+                <div class="input-label"><i class="fas fa-file-lines"></i> 正文内容</div>
+                <textarea id="mmrContent" class="form-control-modern" rows="7"
+                          placeholder="请粘贴或输入新闻正文内容..."></textarea>
+            </div>
+        </div>
+
+        <!-- ── 图片上传（MMR模式显示） ── -->
+        <div id="imageSection" style="display:none;margin-bottom:22px;">
+            <div class="input-label">
+                <i class="fas fa-image"></i>
+                配图上传
+                <span style="margin-left:6px;font-size:.78rem;color:#e53e3e;font-weight:500;">* 图文模式必须上传图片</span>
+            </div>
+            <div class="upload-area mmr-upload" id="uploadArea">
+                <input type="file" id="imageInput" accept="image/*" multiple style="display:none;">
+                <div class="upload-placeholder" id="uploadPlaceholder">
+                    <i class="fas fa-cloud-upload-alt" style="color:#7c3aed;"></i>
+                    <p>点击或拖拽上传图片</p>
+                    <small>支持 JPG、PNG、WebP，最多5张，单张不超过10MB</small>
+                </div>
+                <div id="imagePreviewContainer" style="display:none;">
+                    <div class="image-preview-list" id="imagePreviewList"></div>
+                    <button type="button" class="btn-add-more" id="btnAddMore">
+                        <i class="fas fa-plus"></i> 继续添加
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── 操作按钮 ── -->
+        <div class="action-buttons">
+            <button id="btnSubmitLLM" class="btn-modern btn-llm" onclick="submitLLMDetect()">
+                <i class="fas fa-brain"></i> 开始文本分析
+            </button>
+            <button id="btnSubmitMMR" class="btn-modern btn-mmr" style="display:none;" onclick="submitMMRDetect()">
+                <i class="fas fa-photo-film"></i> 开始图文检测
+            </button>
+            <button id="load_history_btn" class="btn-modern btn-info">
+                <i class="fas fa-clock-rotate-left"></i> 历史记录
+            </button>
+            <button id="clear_btn" class="btn-modern btn-clear">
+                <i class="fas fa-eraser"></i> 清空
+            </button>
+        </div>
+
+        <!-- ── 结果展示区 ── -->
+        <div class="result-card" id="resultCard">
+            <!-- LLM 独立结果头 -->
+            <div id="llmResultArea">
+                <span id="llmResultLabel" class="result-label"></span>
+                <span id="llmResultProb"  class="result-prob"></span>
+                <div id="llmResultPlaceholder" class="result-placeholder">
+                    <i class="fas fa-brain" style="margin-right:9px;"></i>选择「纯文本深度分析」后点击开始检测
+                </div>
+            </div>
+            <!-- MMR 独立结果头 -->
+            <div id="mmrResultArea" style="display:none;">
+                <span id="mmrResultLabel" class="result-label"></span>
+                <span id="mmrResultProb"  class="result-prob"></span>
+                <div id="mmrResultPlaceholder" class="result-placeholder">
+                    <i class="fas fa-photo-film" style="margin-right:9px;"></i>选择「图文多模态检测」后点击开始检测
+                </div>
+            </div>
+
+            <!-- LLM 进度框 -->
+            <div class="progress-box llm-style" id="llmProgressBox">
+                <div class="progress-header">
+                    <span class="progress-label">检测进度</span>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="llmProgressBar"></div>
+                    </div>
+                    <span class="progress-pct" id="llmProgressPct">0%</span>
+                </div>
+                <div class="progress-step" id="llmCurrentStep">
+                    <i class="fas fa-spinner fa-spin" style="color:#1A4981;"></i>
+                    <span>准备开始...</span>
+                </div>
+                <div class="log-stream" id="llmLogStream">
+                    <span style="color:#58a6ff;">[系统]</span> 等待检测开始...<br>
+                </div>
+                <div class="live-branches" id="llmLiveBranches">
+                    <p style="font-weight:600;color:#1A4981;font-size:.86rem;margin:0 0 8px;display:flex;align-items:center;gap:5px;">
+                        <i class="fas fa-list-check"></i> 实时分支结果
+                    </p>
+                    <div id="llmLiveBranchList"></div>
+                </div>
+            </div>
+
+            <!-- MMR 进度框 -->
+            <div class="progress-box mmr-style" id="mmrProgressBox">
+                <div class="progress-header">
+                    <span class="progress-label">图文检测进度</span>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="mmrProgressBar"></div>
+                    </div>
+                    <span class="progress-pct" id="mmrProgressPct">0%</span>
+                </div>
+                <div class="progress-step" id="mmrCurrentStep">
+                    <i class="fas fa-spinner fa-spin" style="color:#7c3aed;"></i>
+                    <span>准备开始...</span>
+                </div>
+                <div class="log-stream" id="mmrLogStream">
+                    <span style="color:#c084fc;">[系统]</span> 等待检测开始...<br>
+                </div>
+                <!-- 实时阶段详情（检测过程中逐步显示） -->
+                <div id="mmrLiveStages" style="display:none;padding:14px 18px;background:#f8f5ff;">
+                    <p style="font-weight:600;color:#5b21b6;font-size:.86rem;margin:0 0 10px;display:flex;align-items:center;gap:5px;">
+                        <i class="fas fa-layer-group"></i> 各阶段实时结果
+                    </p>
+                    <div id="mmrStageList"></div>
+                </div>
+            </div>
+
+            <!-- LLM 最终报告 -->
+            <div id="llmReport">
+                <p style="color:#5b7fa6;font-size:.86rem;margin-bottom:14px;display:flex;align-items:center;gap:5px;">
+                    <i class="fas fa-brain"></i>
+                    <span>深度文本检测 · 三层事件抽取 + 两阶段验证 + 联网搜索</span>
+                </p>
+                <div id="llmShortCircuit" style="display:none;margin-bottom:14px;padding:12px 16px;background:#f0fff4;border:1.5px solid #48bb78;border-radius:14px;color:#276749;">
+                    <i class="fas fa-bolt" style="margin-right:5px;"></i><span id="llmShortCircuitText"></span>
+                </div>
+                <div id="llmFinalCard" style="margin-bottom:18px;padding:18px 22px;border-radius:18px;border:2px solid #e2e8f0;background:linear-gradient(135deg,#f8faff,#fff);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <span id="llmFinalVerdictBadge" style="font-size:1.05rem;font-weight:700;padding:5px 18px;border-radius:99px;background:#e2e8f0;color:#4a5568;">等待结果</span>
+                        <span id="llmConfidenceBadge" style="font-size:.88rem;color:#718096;"></span>
+                    </div>
+                    <p style="font-weight:600;color:#1A4981;margin:0 0 7px;font-size:.88rem;display:flex;align-items:center;gap:5px;">
+                        <i class="fas fa-scale-balanced"></i> 最终判断理由
+                    </p>
+                    <p id="llmFinalReason" style="color:#2e405b;margin:0;line-height:1.8;font-size:.9rem;white-space:pre-line;background:#f8faff;padding:11px 14px;border-radius:11px;"></p>
+                </div>
+                <div id="llmBranchSection">
+                    <p style="font-weight:600;color:#1A4981;margin-bottom:10px;display:flex;align-items:center;gap:5px;">
+                        <i class="fas fa-list-check"></i> 各分支分析详情
+                        <span id="llmBranchStats" style="font-weight:400;color:#718096;font-size:.8rem;margin-left:6px;"></span>
+                    </p>
+                    <div id="llmBranchList"></div>
+                </div>
+                <div id="llmExtractionSummary" style="display:none;margin-top:18px;">
+                    <p style="font-weight:600;color:#1A4981;margin-bottom:10px;display:flex;align-items:center;gap:5px;"><i class="fas fa-sitemap"></i> 事件抽取概览</p>
+                    <div id="llmExtractionContent"></div>
+                </div>
+            </div>
+
+            <!-- MMR 最终报告 -->
+            <div id="mmrReport">
+                <p style="color:#7c3aed;font-size:.86rem;margin-bottom:14px;display:flex;align-items:center;gap:5px;">
+                    <i class="fas fa-photo-film"></i>
+                    <span>图文多模态检测 · Qwen2.5-VL · 博查检索增强</span>
+                </p>
+
+                <!-- 最终判定卡片（与LLM模式一致） -->
+                <div id="mmrFinalCard" style="margin-bottom:18px;padding:18px 22px;border-radius:18px;
+                     border:2px solid #e2e8f0;background:linear-gradient(135deg,#f8f5ff,#fff);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <span id="mmrFinalVerdictBadge"
+                              style="font-size:1.05rem;font-weight:700;padding:5px 18px;
+                                     border-radius:99px;background:#e2e8f0;color:#4a5568;">等待结果</span>
+                        <span id="mmrConfidenceBadge" style="font-size:.88rem;color:#718096;"></span>
+                    </div>
+                    <p style="font-weight:600;color:#5b21b6;margin:0 0 7px;font-size:.88rem;
+                               display:flex;align-items:center;gap:5px;">
+                        <i class="fas fa-scale-balanced"></i> 综合判定依据
+                    </p>
+                    <p id="mmrFinalReason" style="color:#2e1e50;margin:0;line-height:1.85;font-size:.9rem;
+                        white-space:pre-line;background:#f5f0ff;padding:12px 16px;border-radius:12px;"></p>
+                </div>
+
+                <div class="mmr-sub-grid">
+                    <div class="modality-score">
+                        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+                            <i class="fas fa-font" style="color:#5b21b6;"></i><span style="font-weight:500;font-size:.9rem;">文本核查</span>
+                        </div>
+                        <div class="progress"><div class="progress-bar" id="mmrTextBar" style="width:0%;background:#5b21b6;transition:width .6s;"></div></div>
+                        <span class="score-value" id="mmrTextVal">0%</span>
+                    </div>
+                    <div class="modality-score">
+                        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+                            <i class="fas fa-image" style="color:#7c3aed;"></i><span style="font-weight:500;font-size:.9rem;">图像核查</span>
+                        </div>
+                        <div class="progress"><div class="progress-bar" id="mmrImgBar" style="width:0%;background:#7c3aed;transition:width .6s;"></div></div>
+                        <span class="score-value" id="mmrImgVal">0%</span>
+                    </div>
+                    <div class="modality-score">
+                        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+                            <i class="fas fa-link" style="color:#9333ea;"></i><span style="font-weight:500;font-size:.9rem;">图文一致性</span>
+                        </div>
+                        <div class="progress"><div class="progress-bar" id="mmrConsBar" style="width:0%;background:#9333ea;transition:width .6s;"></div></div>
+                        <span class="score-value" id="mmrConsVal">0%</span>
+                    </div>
+                </div>
+                <div class="mmr-reasoning-box">
+                    <p class="mmr-reasoning-title"><i class="fas fa-scale-balanced"></i> 各维度推理依据</p>
+                    <div id="mmrReasoningContent" style="font-size:.87rem;color:#2e1e50;line-height:1.85;"></div>
+                </div>
+                <div class="mmr-evidence-box" id="mmrEvidenceBox" style="display:none;">
+                    <p class="mmr-evidence-title"><i class="fas fa-magnifying-glass"></i> 检索证据摘要</p>
+                    <ul id="mmrEvidenceList" style="margin:0;padding-left:18px;font-size:.84rem;color:#2e405b;line-height:1.8;"></ul>
+                </div>
+            </div>
+
+        </div><!-- end resultCard -->
+    </div><!-- end input-card -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ===================================================
+// 全局变量
+// ===================================================
+var uploadedImages  = [];
+var imageFiles      = [];
+var currentMode     = 'llm';
+var _llmEventSource = null;
+var _mmrRunning     = false;   // MMR Ajax 是否正在进行中
+
+// ── 分析中提示条 + 离开拦截 ──────────────────────────
+function _showAnalysisToast() {
+    $('#analysisToast').addClass('show');
+}
+function _hideAnalysisToast() {
+    // 两边都没在跑才隐藏
+    if (_llmEventSource === null && !_mmrRunning) {
+        $('#analysisToast').removeClass('show');
+    }
+}
+
+// ── 两张卡片各自独立的 sessionStorage key ──────────
+var _SS_LLM = 'detect_llm_v1';
+var _SS_MMR = 'detect_mmr_v1';
+
+// ═══════════════════════════════════════════════════
+// LLM 卡片状态保存/恢复
+// ═══════════════════════════════════════════════════
+function _saveLLM() {
+    try {
+        sessionStorage.setItem(_SS_LLM, JSON.stringify({
+            title:        $('#llmTitle').val(),
+            content:      $('#llmContent').val(),
+            labelText:    $('#llmResultLabel').text(),
+            labelColor:   $('#llmResultLabel').css('color'),
+            probText:     $('#llmResultProb').text(),
+            probColor:    $('#llmResultProb').css('color'),
+            running:      (_llmEventSource !== null),
+            report:       $('#llmReport').is(':visible') ? $('#llmReport').html() : null,
+            log:          $('#llmLogStream').html(),
+            liveBranches: $('#llmLiveBranches').is(':visible') ? $('#llmLiveBranchList').html() : null,
+            progressPct:  parseInt($('#llmProgressPct').text()) || 0,
+            progressLabel: $('#llmCurrentStep span').text() || '',
+        }));
+    } catch(e) {}
+}
+function _restoreLLM() {
+    try {
+        var s = JSON.parse(sessionStorage.getItem(_SS_LLM) || 'null');
+        if (!s) return;
+        if (s.title)   $('#llmTitle').val(s.title);
+        if (s.content) $('#llmContent').val(s.content);
+        if (s.labelText && currentMode === 'llm') {
+            $('#llmResultLabel').text(s.labelText).css('color', s.labelColor || 'inherit');
+            $('#llmResultProb').text(s.probText || '').css('color', s.probColor || 'inherit');
+            $('#llmResultPlaceholder').hide();
+        }
+        if (s.report && currentMode === 'llm') {
+            $('#llmReport').html(s.report).show();
+        }
+        if (s.liveBranches && currentMode === 'llm') {
+            $('#llmLiveBranchList').html(s.liveBranches);
+            $('#llmLiveBranches').show();
+        }
+        if (s.running && currentMode === 'llm') {
+            // 页面重新加载导致 SSE 断开
+            $('#llmProgressBox').show();
+            if (s.log) $('#llmLogStream').html(s.log);
+            if (s.progressPct != null) setLLMProgress(s.progressPct, s.progressLabel || '');
+            appendLLMLog('[系统] 检测因页面切换中断，请重新点击"开始深度分析"', 'error');
+            enableButtons('llm');
+        }
+    } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+// MMR 卡片状态保存/恢复
+// ═══════════════════════════════════════════════════
+function _saveMMR() {
+    try {
+        sessionStorage.setItem(_SS_MMR, JSON.stringify({
+            title:        $('#mmrTitle').val(),
+            content:      $('#mmrContent').val(),
+            labelText:    $('#mmrResultLabel').text(),
+            labelColor:   $('#mmrResultLabel').css('color'),
+            probText:     $('#mmrResultProb').text(),
+            probColor:    $('#mmrResultProb').css('color'),
+            running:      _mmrRunning,
+            report:       $('#mmrReport').is(':visible') ? $('#mmrReport').html() : null,
+            log:          $('#mmrLogStream').html(),
+            liveStages:   $('#mmrLiveStages').is(':visible') ? $('#mmrStageList').html() : null,
+            progressPct:  parseInt($('#mmrProgressPct').text()) || 0,
+            progressLabel: $('#mmrCurrentStep span').text() || '',
+        }));
+    } catch(e) {}
+}
+function _restoreMMR() {
+    try {
+        var s = JSON.parse(sessionStorage.getItem(_SS_MMR) || 'null');
+        if (!s) return;
+        if (s.title)   $('#mmrTitle').val(s.title);
+        if (s.content) $('#mmrContent').val(s.content);
+        if (s.labelText && currentMode === 'mmr') {
+            $('#mmrResultLabel').text(s.labelText).css('color', s.labelColor || 'inherit');
+            $('#mmrResultProb').text(s.probText || '').css('color', s.probColor || 'inherit');
+            $('#mmrResultPlaceholder').hide();
+        }
+        if (s.report && currentMode === 'mmr') {
+            $('#mmrReport').html(s.report).show();
+        }
+        if (s.liveStages && currentMode === 'mmr') {
+            $('#mmrStageList').html(s.liveStages);
+            $('#mmrLiveStages').show();
+        }
+        if (s.running && currentMode === 'mmr') {
+            // 页面重新加载导致 AJAX 断开 → 图片文件已丢失无法自动重提交
+            $('#mmrProgressBox').show();
+            if (s.log) $('#mmrLogStream').html(s.log);
+            if (s.progressPct != null) setMMRProgress(s.progressPct, s.progressLabel || '');
+            appendMMRLog('[系统] 检测因页面切换中断，请重新上传图片后再次提交', 'error');
+            enableButtons('mmr');
+        }
+    } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+// 模式切换 UI（不清结果，不清输入）
+// ═══════════════════════════════════════════════════
+function _applyModeUI(mode) {
+    $('#cardLLM').removeClass('active-llm active-mmr');
+    $('#cardMMR').removeClass('active-llm active-mmr');
+    $('#llmTip, #mmrTip').hide();
+    $('#imageSection').hide();
+    $('#btnSubmitLLM, #btnSubmitMMR').hide();
+    // 切换独立输入区 + 结果区
+    $('#llmInputArea, #mmrInputArea').hide();
+    $('#llmResultArea, #mmrResultArea').hide();
+    if (mode === 'llm') {
+        $('#cardLLM').addClass('active-llm');
+        $('#llmTip').show();
+        $('#btnSubmitLLM').show();
+        $('#llmInputArea').show();
+        $('#llmResultArea').show();
+    } else {
+        $('#cardMMR').addClass('active-mmr');
+        $('#mmrTip').show();
+        $('#imageSection').show();
+        $('#btnSubmitMMR').show();
+        $('#mmrInputArea').show();
+        $('#mmrResultArea').show();
+    }
+}
+
+// ── 切换卡片（输入区各自独立，仅切换显示） ──────────
+window.setMode = function(mode) {
+    if (currentMode === mode) return;
+
+    // 保存当前卡片状态
+    if (currentMode === 'llm') _saveLLM(); else _saveMMR();
+
+    currentMode = mode;
+    _applyModeUI(mode);
+
+    // 隐藏所有报告/进度，按需显示
+    $('#llmReport, #llmProgressBox, #mmrReport, #mmrProgressBox').hide();
+    $('#llmLiveBranches, #mmrLiveStages').hide();
+
+    if (mode === 'llm') {
+        if (_llmEventSource !== null) {
+            // SSE 还在跑 → 显示实时 DOM
+            $('#llmProgressBox').show();
+            if ($('#llmLiveBranchList').children().length > 0) $('#llmLiveBranches').show();
+        } else {
+            // 从 storage 恢复结果区
+            try {
+                var s = JSON.parse(sessionStorage.getItem(_SS_LLM) || 'null');
+                if (s && s.labelText) {
+                    $('#llmResultLabel').text(s.labelText).css('color', s.labelColor || 'inherit');
+                    $('#llmResultProb').text(s.probText || '').css('color', s.probColor || 'inherit');
+                    $('#llmResultPlaceholder').hide();
+                }
+                if (s && s.report) { $('#llmReport').html(s.report).show(); }
+                if (s && s.log) { $('#llmLogStream').html(s.log); }
+                if (s && s.liveBranches) { $('#llmLiveBranchList').html(s.liveBranches); $('#llmLiveBranches').show(); }
+            } catch(e) {}
+        }
+    } else {
+        if (_mmrRunning) {
+            // AJAX 还在跑 → 显示实时 DOM
+            $('#mmrProgressBox').show();
+            if ($('#mmrStageList').children().length > 0) $('#mmrLiveStages').show();
+        } else {
+            // 从 storage 恢复结果区
+            try {
+                var s = JSON.parse(sessionStorage.getItem(_SS_MMR) || 'null');
+                if (s && s.labelText) {
+                    $('#mmrResultLabel').text(s.labelText).css('color', s.labelColor || 'inherit');
+                    $('#mmrResultProb').text(s.probText || '').css('color', s.probColor || 'inherit');
+                    $('#mmrResultPlaceholder').hide();
+                }
+                if (s && s.report) { $('#mmrReport').html(s.report).show(); }
+                if (s && s.log) { $('#mmrLogStream').html(s.log); }
+                if (s && s.liveStages) { $('#mmrStageList').html(s.liveStages); $('#mmrLiveStages').show(); }
+            } catch(e) {}
+        }
+    }
+
+    // ★ 同步按钮状态：切换后根据目标卡片是否在分析中设置按钮
+    var targetRunning = (mode === 'llm') ? (_llmEventSource !== null) : _mmrRunning;
+    if (mode === 'llm') {
+        $('#btnSubmitLLM').prop('disabled', !!targetRunning).toggleClass('btn-disabled', !!targetRunning);
+    } else {
+        $('#btnSubmitMMR').prop('disabled', !!targetRunning).toggleClass('btn-disabled', !!targetRunning);
+    }
+    $('#clear_btn').prop('disabled', !!targetRunning).toggleClass('btn-disabled', !!targetRunning);
+};
+
+// ── resetResult：仅清当前卡片结果区 ──────────────────
+function resetResult() {
+    if (currentMode === 'llm') { $('#llmResultLabel, #llmResultProb').empty().css('color', 'inherit'); $('#llmResultPlaceholder').show(); }
+    else { $('#mmrResultLabel, #mmrResultProb').empty().css('color', 'inherit'); $('#mmrResultPlaceholder').show(); }
+    if (currentMode === 'llm') {
+        $('#llmProgressBox, #llmReport').hide();
+        $('#llmLiveBranches').hide();
+        $('#llmLiveBranchList').empty();
+    } else {
+        $('#mmrProgressBox, #mmrReport').hide();
+        $('#mmrLiveStages').hide();
+        $('#mmrStageList').empty();
+    }
+}
+
+$(function() {
+    $('#li_3').addClass('active');
+    $('#llmTitle, #llmContent, #mmrTitle, #mmrContent').on('focus', function() { $(this).select(); });
+    initImageUpload();
+
+    // 读取上次记录的 currentMode，恢复对应卡片
+    var lastMode = 'llm';
+    try { lastMode = sessionStorage.getItem('detect_mode') || 'llm'; } catch(e) {}
+    currentMode = lastMode;
+    _applyModeUI(lastMode);
+    if (lastMode === 'llm') { _restoreLLM(); }
+    else                    { _restoreMMR(); }
+
+    // 页面切换/离开时保存当前卡片状态
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            try { sessionStorage.setItem('detect_mode', currentMode); } catch(e) {}
+            if (currentMode === 'llm') _saveLLM(); else _saveMMR();
+        }
+    });
+    window.addEventListener('beforeunload', function(e) {
+        try { sessionStorage.setItem('detect_mode', currentMode); } catch(ex) {}
+        if (currentMode === 'llm') _saveLLM(); else _saveMMR();
+        // 分析进行中时弹出浏览器离开确认
+        if (_llmEventSource !== null || _mmrRunning) {
+            e.preventDefault();
+            e.returnValue = '检测正在进行中，离开页面将导致分析中断！';
+        }
+    });
+
+    // ── 清空按钮：只清当前卡片 ─────────────────────────
+    $('#clear_btn').click(function() {
+        if (currentMode === 'llm') { $('#llmTitle, #llmContent').val(''); } else { $('#mmrTitle, #mmrContent').val(''); }
+        resetResult();
+        if (currentMode === 'llm') {
+            $('#llmLogStream').html('<span style="color:#58a6ff;">[系统]</span> 等待检测开始...<br>');
+            setLLMProgress(0, '等待检测...');
+            if (_llmEventSource) { _llmEventSource.close(); _llmEventSource = null; }
+            try { sessionStorage.removeItem(_SS_LLM); } catch(e) {}
+        } else {
+            $('#mmrLogStream').html('<span style="color:#c084fc;">[系统]</span> 等待检测开始...<br>');
+            setMMRProgress(0, '等待检测...');
+            _mmrRunning = false;
+            uploadedImages = []; imageFiles = [];
+            $('#uploadPlaceholder').show();
+            $('#imagePreviewContainer').hide();
+            $('#imagePreviewList').empty();
+            try { sessionStorage.removeItem(_SS_MMR); } catch(e) {}
+        }
+        enableButtons();
+    });
+
+    $('#load_history_btn').click(function() { loadHistory(1); });
+});
+
+// ===================================================
+// LLM 深度文本检测（SSE 流式）
+// ===================================================
+window.submitLLMDetect = function() {
+    var title   = $('#llmTitle').val().trim();
+    var content = $('#llmContent').val().trim();
+    if (!content) { alert('请输入新闻内容'); return; }
+
+    $('#llmResultLabel, #llmResultProb').empty().css('color', 'inherit');
+    $('#llmResultPlaceholder').hide();
+    $('#llmReport, #mmrProgressBox, #mmrReport').hide();
+    $('#llmProgressBox').show();
+    $('#llmLiveBranches').hide();
+    $('#llmLiveBranchList').empty();
+    setLLMProgress(0, '正在连接检测服务...');
+    appendLLMLog('[系统] 开始深度文本检测，请耐心等待（约30~90秒）...', 'info');
+    disableButtons('llm');
+    _showAnalysisToast();
+    if (_llmEventSource) { _llmEventSource.close(); _llmEventSource = null; }
+
+    var params = new URLSearchParams({ title: title, content: content });
+    _llmEventSource = new EventSource('/llm_text_predict_stream?' + params.toString());
+
+    _llmEventSource.addEventListener('start', function() {
+        appendLLMLog('[系统] 检测服务已连接', 'info');
+    });
+    _llmEventSource.addEventListener('progress', function(e) {
+        var d = JSON.parse(e.data);
+        var pct = Math.round((d.step / d.total) * 100);
+        setLLMProgress(pct, d.label);
+        appendLLMLog(d.label + (d.detail ? ' - ' + d.detail : ''), 'step');
+    });
+    _llmEventSource.addEventListener('short_circuit', function(e) {
+        var d = JSON.parse(e.data);
+        setLLMProgress(100, '权威媒体直接命中');
+        appendLLMLog('权威短路：' + d.verdict + ' (' + (d.source || '') + ')', 'success');
+    });
+    _llmEventSource.addEventListener('branch_result', function(e) {
+        var d = JSON.parse(e.data);
+        var icon = d.verdict === '真实新闻' ? '[真]' : d.verdict === '虚假新闻' ? '[假]' : '[?]';
+        var clr  = d.verdict === '真实新闻' ? '#38a169' : d.verdict === '虚假新闻' ? '#e53e3e' : '#888';
+        appendLLMLog(icon + ' [' + d.branch_label + '] ' + d.verdict, 'branch');
+        $('#llmLiveBranches').show();
+        var bHtml = '<div style="margin-bottom:7px;padding:9px 13px;border-radius:11px;background:#fff;border-left:3px solid ' + clr + ';font-size:.84rem;">'
+            + '<b style="color:' + clr + ';">' + icon + ' ' + escapeHtml(d.branch_label) + '</b>'
+            + ' <span style="color:#718096;font-size:.76rem;">' + escapeHtml((d.event_summary || '').substring(0, 40)) + '...</span><br>'
+            + '<span style="color:#4a5568;line-height:1.6;">' + escapeHtml((d.reason || '').substring(0, 130)) + ((d.reason || '').length > 130 ? '...' : '') + '</span></div>';
+        $('#llmLiveBranchList').append(bHtml);
+    });
+    _llmEventSource.addEventListener('done', function(e) {
+        var d = JSON.parse(e.data);
+        setLLMProgress(100, '检测完成');
+        appendLLMLog('[系统] 检测完成，正在渲染结果...', 'success');
+        _llmEventSource.close(); _llmEventSource = null;
+        enableButtons('llm');
+        renderLLMResult(d);
+        // 如果当前不在 LLM 卡片，结果已渲染到隐藏的 DOM 中，存入 storage 待切回时恢复
+        setTimeout(_saveLLM, 500);
+    });
+    _llmEventSource.addEventListener('saved', function(e) {
+        var d = JSON.parse(e.data);
+        appendLLMLog('[系统] 检测记录已保存 (ID:' + d.detect_id + ')', 'info');
+    });
+    _llmEventSource.addEventListener('error', function(e) {
+        var msg = '未知错误';
+        try { msg = JSON.parse(e.data).message; } catch(ex) {}
+        appendLLMLog('[错误] ' + msg, 'error');
+        setLLMProgress(0, '检测失败');
+        _llmEventSource.close(); _llmEventSource = null;
+        enableButtons('llm');
+        $('#llmResultPlaceholder').show();
+        alert('深度检测失败：' + msg);
+    });
+    _llmEventSource.onerror = function() {
+        if (_llmEventSource && _llmEventSource.readyState === EventSource.CLOSED) return;
+        appendLLMLog('[错误] 连接中断', 'error');
+        enableButtons('llm');
+    };
+};
+
+// ===================================================
+// MMR 图文多模态检测（Ajax + 分阶段模拟进度）
+// ===================================================
+window.submitMMRDetect = function() {
+    var title   = $('#mmrTitle').val().trim();
+    var content = $('#mmrContent').val().trim();
+    if (!content) { alert('请输入新闻内容'); return; }
+    if (imageFiles.length === 0) {
+        alert('图文多模态检测模式需要上传至少一张图片\n\n如果只有文字内容，请切换到「纯文本深度分析」模式');
+        return;
+    }
+
+    $('#mmrResultLabel, #mmrResultProb').empty().css('color', 'inherit');
+    $('#mmrResultPlaceholder').hide();
+    $('#llmProgressBox, #llmReport, #mmrReport').hide();
+    $('#mmrProgressBox').show();
+
+    setMMRProgress(0, '正在准备检测...');
+    appendMMRLog('[系统] 开始图文多模态检测（约15~45秒）...', 'info');
+    disableButtons('mmr');
+    _mmrRunning = true;
+    _showAnalysisToast();
+
+    // 分阶段模拟进度（每项含：进度值, 延迟ms, 标题, 说明）
+    var steps = [
+        [10, 2000,  '图片上传完成，开始分析...',
+            '图片已传输至检测服务，准备调用 Qwen2.5-VL 进行多模态理解'],
+        [28, 6000,  '文本真实性核查中...',
+            '正在通过博查 API 检索相关辟谣信息，同时分析文本语义'],
+        [52, 14000, '图像真实性检测中...',
+            '正在检测图像是否存在 PS 痕迹、AI 生成特征或断章取义情况'],
+        [76, 22000, '图文一致性分析中...',
+            '正在比对图片内容与文字描述是否存在语义矛盾或误导性组合'],
+        [90, 32000, '汇总证据，融合判决...',
+            '正在加权融合三个子任务结果，生成综合置信度和判定理由']
+    ];
+    $('#mmrLiveStages').show();
+    $('#mmrStageList').empty();
+    steps.forEach(function(s) {
+        setTimeout(function() {
+            setMMRProgress(s[0], s[2]);
+            appendMMRLog(s[2], 'step');
+            var card = '<div style="margin-bottom:8px;padding:10px 14px;background:#fff;'
+                + 'border-radius:11px;border-left:3px solid #7c3aed;font-size:.84rem;">'
+                + '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">'
+                + '<i class="fas fa-spinner fa-spin" style="color:#7c3aed;font-size:.8rem;"></i>'
+                + '<b style="color:#5b21b6;">' + escapeHtml(s[2]) + '</b></div>'
+                + '<span style="color:#6b7280;">' + escapeHtml(s[3]) + '</span></div>';
+            $('#mmrStageList').append(card);
+        }, s[1]);
+    });
+
+    var formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    imageFiles.forEach(function(f) { formData.append('images', f); });
+
+    $.ajax({
+        url: '/mmr_predict', type: 'POST',
+        data: formData, processData: false, contentType: false,
+        timeout: 120000,
+        success: function(data) {
+            _mmrRunning = false;
+            setMMRProgress(100, '检测完成');
+            appendMMRLog('[系统] 检测完成，正在渲染结果...', 'success');
+            // 把所有 spinner 换成完成图标
+            $('#mmrStageList .fa-spinner').removeClass('fa-spinner fa-spin').addClass('fa-check-circle').css('color', '#38a169');
+            enableButtons('mmr');
+            if (!data.success) {
+                $('#mmrResultPlaceholder').show();
+                alert('检测失败：' + (data.error || '未知错误'));
+                return;
+            }
+            renderMMRResult(data);
+            setTimeout(_saveMMR, 500);
+            if (data.detect_id) {
+                appendMMRLog('[系统] 检测记录已保存 (ID:' + data.detect_id + ')', 'info');
+            }
+            // 检测完成后保持图片显示，不清除
+        },
+        error: function(xhr, status) {
+            _mmrRunning = false;
+            setMMRProgress(0, '检测失败');
+            appendMMRLog('[错误] ' + (status === 'timeout' ? '请求超时' : '网络错误'), 'error');
+            enableButtons('mmr');
+            $('#mmrResultPlaceholder').show();
+            alert(status === 'timeout' ? '检测超时（超过120秒），请稍后重试' : '检测请求失败，请稍后重试');
+        }
+    });
+};
+
+// ===================================================
+// 进度条辅助（LLM & MMR 独立）
+// ===================================================
+function setLLMProgress(pct, label) {
+    $('#llmProgressBar').css('width', pct + '%');
+    $('#llmProgressPct').text(pct + '%');
+    $('#llmCurrentStep').html(
+        '<i class="fas ' + (pct < 100 ? 'fa-spinner fa-spin' : 'fa-check-circle') + '" style="color:#1A4981;"></i> <span>' + escapeHtml(label) + '</span>'
+    );
+}
+function setMMRProgress(pct, label) {
+    $('#mmrProgressBar').css('width', pct + '%');
+    $('#mmrProgressPct').text(pct + '%');
+    $('#mmrCurrentStep').html(
+        '<i class="fas ' + (pct < 100 ? 'fa-spinner fa-spin' : 'fa-check-circle') + '" style="color:#7c3aed;"></i> <span>' + escapeHtml(label) + '</span>'
+    );
+}
+function appendLLMLog(text, type) {
+    var colors = { info:'#8b949e', step:'#79c0ff', success:'#56d364', branch:'#e3b341', error:'#f85149' };
+    var now = new Date().toLocaleTimeString('zh-CN', {hour12: false});
+    var $log = $('#llmLogStream');
+    $log.append('<span style="color:#6e7681;">[' + now + ']</span> <span style="color:' + (colors[type] || '#c9d1d9') + ';">' + escapeHtml(text) + '</span><br>');
+    $log.scrollTop($log[0].scrollHeight);
+}
+function appendMMRLog(text, type) {
+    var colors = { info:'#c084fc', step:'#a78bfa', success:'#86efac', error:'#f87171' };
+    var now = new Date().toLocaleTimeString('zh-CN', {hour12: false});
+    var $log = $('#mmrLogStream');
+    $log.append('<span style="color:#6e7681;">[' + now + ']</span> <span style="color:' + (colors[type] || '#c9d1d9') + ';">' + escapeHtml(text) + '</span><br>');
+    $log.scrollTop($log[0].scrollHeight);
+}
+
+// ===================================================
+// 渲染 LLM 最终结果
+// ===================================================
+function renderLLMResult(data) {
+    var label = data.label;
+    var conf  = (data.confidence || 0).toFixed(2);
+    var color  = label === '真实新闻' ? '#38a169' : label === '虚假新闻' ? '#e53e3e' : '#888';
+    var bgClr  = label === '真实新闻' ? '#f0fff4' : label === '虚假新闻' ? '#fff5f5' : '#f8f8f8';
+    var bdrClr = label === '真实新闻' ? '#48bb78' : label === '虚假新闻' ? '#fc8181' : '#cbd5e0';
+
+    // LLM 独立结果区，直接写入
+    $('#llmResultLabel').text('检测结果：' + label).css('color', color);
+    $('#llmResultProb').text('置信度：' + conf + '%').css('color', color);
+    $('#llmResultPlaceholder').hide();
+    $('#llmFinalVerdictBadge').text(label).css({ background: bgClr, color: color, border: '1.5px solid ' + bdrClr });
+    $('#llmConfidenceBadge').text('置信度：' + conf + '%').css('color', color);
+
+    if (data.short_circuited) {
+        $('#llmShortCircuitText').text('已在权威媒体/辟谣平台找到核查结论' + (data.short_circuit_source ? '（来源：' + data.short_circuit_source + '）' : ''));
+        $('#llmShortCircuit').show();
+    } else {
+        $('#llmShortCircuit').hide();
+    }
+
+    $('#llmFinalReason').text(data.final_reason || '（无详细说明）');
+
+    var total = data.total_branches || 0;
+    var fake  = data.fake_branches  || 0;
+    $('#llmBranchStats').text('共' + total + '个分支，' + fake + '个判定为虚假');
+
+    var bHtml = '';
+    (data.branch_results || []).forEach(function(b, idx) {
+        var icon = b.verdict === '真实新闻' ? '✓' : b.verdict === '虚假新闻' ? '✗' : '?';
+        var bc   = b.verdict === '虚假新闻' ? '#e53e3e' : b.verdict === '真实新闻' ? '#38a169' : '#a0aec0';
+        var bg   = b.verdict === '虚假新闻' ? '#fff5f5' : b.verdict === '真实新闻' ? '#f0fff4' : '#f7fafc';
+        var buid = 'llm_br_' + idx + '_' + Date.now();
+        var summary = (b.event_summary || '').substring(0, 45);
+
+        var dis = '';
+        if (!b.agreed) {
+            dis = '<div style="margin-top:8px;padding:8px 12px;background:#fff8f0;border:1px solid #fed7aa;border-radius:8px;font-size:.82rem;color:#7b4b00;">'
+                + '⚠ 两阶段分歧 — 初判: ' + escapeHtml(b.initial_verdict || '') + ' → 复核: ' + escapeHtml(b.review_verdict || '')
+                + '</div>';
+        }
+
+        bHtml += '<div class="branch-accordion">'
+            + '<div class="branch-accordion-head" style="background:' + bg + ';color:' + bc + ';" '
+            + 'onclick="var bd=document.getElementById(\'' + buid + '\');var hd=this;'
+            + 'if(bd.classList.contains(\'show\')){bd.classList.remove(\'show\');hd.classList.remove(\'expanded\');}'
+            + 'else{bd.classList.add(\'show\');hd.classList.add(\'expanded\');}">'
+            + '<span style="display:flex;align-items:center;gap:6px;min-width:0;">'
+            + '<span style="font-weight:800;font-size:.92rem;">' + icon + '</span>'
+            + '<span>' + escapeHtml(b.branch_label) + '</span>'
+            + (summary ? '<span style="font-weight:400;font-size:.76rem;opacity:.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">— ' + escapeHtml(summary) + '</span>' : '')
+            + '</span>'
+            + '<i class="fas fa-chevron-down branch-chevron"></i>'
+            + '</div>'
+            + '<div class="branch-accordion-body" id="' + buid + '">'
+            + '<p style="margin:0 0 4px;color:#2e405b;font-size:.87rem;line-height:1.75;">' + escapeHtml(b.reason || '') + '</p>'
+            + dis
+            + '</div>'
+            + '</div>';
+    });
+    $('#llmBranchList').html(bHtml || '<p style="color:#718096;">暂无分支数据</p>');
+
+    var es = data.extraction_summary;
+    if (es && es.backbone) {
+        var implHtml = '';
+        (es.implicit_types || []).forEach(function(im) {
+            implHtml += '<li><b>' + escapeHtml(im.type) + '</b>：' + escapeHtml((im.summary || '').substring(0, 70)) + '</li>';
+        });
+        $('#llmExtractionContent').html(
+            '<div style="padding:12px 16px;background:#f8faff;border-radius:14px;">'
+            + '<p style="margin:0 0 7px;"><b>主干事件：</b>' + escapeHtml(es.backbone) + '</p>'
+            + '<p style="margin:0 0 7px;"><b>次要事件：</b>' + es.secondary_count + ' 个</p>'
+            + '<p style="margin:0' + (implHtml ? ' 0 7px;' : ';') + '"><b>隐含信息：</b>' + es.implicit_count + ' 类</p>'
+            + (implHtml ? '<ul style="margin:0;padding-left:16px;font-size:.86rem;color:#2e405b;">' + implHtml + '</ul>' : '')
+            + '</div>'
+        );
+        $('#llmExtractionSummary').show();
+    } else {
+        $('#llmExtractionSummary').hide();
+    }
+
+    // 仅当前在 LLM 卡片时显示报告并滚动
+    if (currentMode === 'llm') {
+        $('#llmReport').show();
+        $('html,body').animate({ scrollTop: $('#resultCard').offset().top - 20 }, 400);
+    }
+}
+
+// ===================================================
+// 渲染 MMR 最终结果
+// ===================================================
+function renderMMRResult(data) {
+    var isReal = (data.label === '真实新闻');
+    var color  = isReal ? '#38a169' : data.label === '虚假新闻' ? '#e53e3e' : '#e0ac00';
+    var bgClr  = isReal ? '#f0fff4' : data.label === '虚假新闻' ? '#fff5f5' : '#fffbeb';
+    var bdrClr = isReal ? '#48bb78' : data.label === '虚假新闻' ? '#fc8181' : '#f6ad55';
+
+    // MMR 独立结果区，直接写入
+    $('#mmrResultLabel').text('检测结果：' + data.label).css('color', color);
+    $('#mmrResultProb').text('置信度：' + parseFloat(data.prob).toFixed(2) + '%').css('color', color);
+    $('#mmrResultPlaceholder').hide();
+
+    $('#mmrFinalVerdictBadge').text(data.label).css({ background: bgClr, color: color, border: '1.5px solid ' + bdrClr });
+    $('#mmrConfidenceBadge').text('置信度：' + parseFloat(data.prob).toFixed(2) + '%').css('color', color);
+
+    var r  = data.reasoning  || {};
+    var ss = data.sub_scores || {};
+
+    // ── 权威短路渲染 ──────────────────────────────────
+    if (data.short_circuited) {
+        var scSource = data.short_circuit_source || '权威来源';
+        var scReason = r.authority_short_circuit || '权威核查命中';
+
+        // 综合理由区
+        $('#mmrFinalReason').text('权威核查短路命中 — ' + scSource + '\n\n' + scReason);
+
+        // 评分条全部归零（短路未走三子任务）
+        ['mmrTextBar', 'mmrImgBar', 'mmrConsBar'].forEach(function(id) { $('#' + id).css('width', '0%'); });
+        ['mmrTextVal', 'mmrImgVal', 'mmrConsVal'].forEach(function(id) { $('#' + id).text('—'); });
+
+        // 推理内容区显示短路信息
+        var scHtml = '<div style="margin-bottom:14px;padding:16px 18px;background:#f0fff4;border-radius:14px;border:1.5px solid #48bb78;">'
+            + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+            + '<i class="fas fa-bolt" style="color:#38a169;font-size:1.1rem;"></i>'
+            + '<span style="font-weight:700;color:#276749;font-size:.95rem;">权威核查短路命中</span>'
+            + '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:20px;font-size:.76rem;font-weight:600;">已短路</span></div>'
+            + '<p style="margin:0;color:#2e4a3a;font-size:.87rem;line-height:1.85;white-space:pre-wrap;">' + escapeHtml(scReason) + '</p>'
+            + '</div>';
+        $('#mmrReasoningContent').html(scHtml);
+
+        var ev = (data.evidence || []).filter(function(e) { return !!e; });
+        if (ev.length > 0) {
+            $('#mmrEvidenceList').html(ev.map(function(e) {
+                return '<li>' + escapeHtml(e.substring(0, 200)) + (e.length > 200 ? '...' : '') + '</li>';
+            }).join(''));
+            $('#mmrEvidenceBox').show();
+        } else {
+            $('#mmrEvidenceBox').hide();
+        }
+
+        if (currentMode === 'mmr') {
+            $('#mmrReport').show();
+            $('html,body').animate({ scrollTop: $('#resultCard').offset().top - 20 }, 400);
+        }
+        return;
+    }
+
+    // ── 常规三子任务渲染 ──────────────────────────────
+    var reasonParts = [];
+    var dimLabels = [
+        ['text_check',        '[文本核查]',   ss.text_check],
+        ['image_check',       '[图像核查]',   ss.image_check],
+        ['consistency_check', '[图文一致性]', ss.consistency_check]
+    ];
+    dimLabels.forEach(function(info) {
+        var txt   = r[info[0]] || '';
+        var score = ((info[2] || 0) * 100).toFixed(1);
+        if (txt) reasonParts.push(info[1] + '（虚假概率 ' + score + '%）：' + txt.substring(0, 150) + (txt.length > 150 ? '...' : ''));
+    });
+    $('#mmrFinalReason').text(reasonParts.join('\n\n') || '（无综合依据）');
+
+    function setBar(barId, valId, score) {
+        var pct = ((score || 0) * 100).toFixed(1);
+        $('#' + barId).css('width', pct + '%');
+        $('#' + valId).text(pct + '%');
+    }
+    setBar('mmrTextBar', 'mmrTextVal', ss.text_check);
+    setBar('mmrImgBar',  'mmrImgVal',  ss.image_check);
+    setBar('mmrConsBar', 'mmrConsVal', ss.consistency_check);
+
+    var rMap = [
+        ['text_check',        'fas fa-font',  '文本核查',   '#5b21b6'],
+        ['image_check',       'fas fa-image', '图像核查',   '#7c3aed'],
+        ['consistency_check', 'fas fa-link',  '图文一致性', '#9333ea']
+    ];
+    var rc = '';
+    rMap.forEach(function(info) {
+        var txt       = r[info[0]] || '';
+        var score     = ((ss[info[0]] || 0) * 100).toFixed(1);
+        var fakeScore = ss[info[0]] || 0;
+        var scoreColor = fakeScore > 0.6 ? '#e53e3e' : fakeScore < 0.35 ? '#38a169' : '#d69e2e';
+        if (txt) {
+            rc += '<div style="margin-bottom:14px;padding:14px 16px;background:#fff;border-radius:14px;border-left:4px solid ' + info[3] + ';box-shadow:0 2px 8px -4px rgba(124,58,237,.1);">'
+                + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+                + '<span style="font-weight:700;color:' + info[3] + ';font-size:.9rem;"><i class="' + info[1] + '"></i> ' + info[2] + '</span>'
+                + '<span style="font-size:.82rem;font-weight:700;color:' + scoreColor + ';">虚假概率 ' + score + '%</span></div>'
+                + '<p style="margin:0;color:#2e1e50;font-size:.87rem;line-height:1.85;">' + escapeHtml(txt) + '</p>'
+                + '</div>';
+        }
+    });
+    $('#mmrReasoningContent').html(rc || '<p style="color:#718096;">（无推理详情）</p>');
+
+    var ev = (data.evidence || []).filter(function(e) { return !!e; });
+    if (ev.length > 0) {
+        $('#mmrEvidenceList').html(ev.map(function(e) {
+            return '<li>' + escapeHtml(e.substring(0, 130)) + (e.length > 130 ? '...' : '') + '</li>';
+        }).join(''));
+        $('#mmrEvidenceBox').show();
+    } else {
+        $('#mmrEvidenceBox').hide();
+    }
+
+    if (currentMode === 'mmr') {
+        $('#mmrReport').show();
+        $('html,body').animate({ scrollTop: $('#resultCard').offset().top - 20 }, 400);
+    }
+}
+
+// ===================================================
+// 图片上传
+// ===================================================
+function initImageUpload() {
+    var uploadArea         = document.getElementById('uploadArea');
+    var imageInput         = document.getElementById('imageInput');
+    var uploadPlaceholder  = document.getElementById('uploadPlaceholder');
+    var imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    var imagePreviewList   = document.getElementById('imagePreviewList');
+    var btnAddMore         = document.getElementById('btnAddMore');
+    if (!uploadArea) return;
+
+    uploadArea.addEventListener('click', function(e) {
+        if (e.target.closest && (e.target.closest('.remove-image') || e.target.closest('#btnAddMore'))) return;
+        imageInput.click();
+    });
+
+    var dragCounter = 0;
+
+    uploadArea.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        dragCounter++;
+        uploadArea.classList.add('drag-active');
+    });
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    });
+    uploadArea.addEventListener('dragleave', function() {
+        dragCounter--;
+        if (dragCounter <= 0) { dragCounter = 0; uploadArea.classList.remove('drag-active'); }
+    });
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dragCounter = 0;
+        uploadArea.classList.remove('drag-active');
+        var files = Array.from(e.dataTransfer.files).filter(function(f) { return f.type.startsWith('image/'); });
+        if (files.length === 0) {
+            uploadArea.classList.add('drop-error');
+            setTimeout(function() { uploadArea.classList.remove('drop-error'); }, 700);
+            return;
+        }
+        uploadArea.classList.add('drop-success');
+        setTimeout(function() { uploadArea.classList.remove('drop-success'); }, 500);
+        handleImageFiles(files);
+    });
+
+    imageInput.addEventListener('change', function(e) {
+        handleImageFiles(Array.from(e.target.files));
+        imageInput.value = '';
+    });
+    btnAddMore.addEventListener('click', function(e) { e.stopPropagation(); imageInput.click(); });
+
+    function handleImageFiles(files) {
+        if (uploadedImages.length + files.length > 5) {
+            alert('最多只能上传5张图片，当前已有 ' + uploadedImages.length + ' 张');
+            return;
+        }
+        files.forEach(function(file) {
+            if (file.size > 10 * 1024 * 1024) { alert('图片 ' + file.name + ' 超过10MB，请压缩后上传'); return; }
+            if (!file.type.startsWith('image/')) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                uploadedImages.push(ev.target.result);
+                imageFiles.push(file);
+                updatePreview();
+            };
+            reader.readAsDataURL(file);
+        });
+        uploadPlaceholder.style.display = 'none';
+        imagePreviewContainer.style.display = 'block';
+    }
+
+    function updatePreview() {
+        imagePreviewList.innerHTML = '';
+        uploadedImages.forEach(function(imgData, index) {
+            var item = document.createElement('div');
+            item.className = 'image-preview-item';
+            item.style.animation = 'imgFadeIn .3s ease';
+            item.innerHTML =
+                '<img src="' + imgData + '" alt="预览图 ' + (index + 1) + '" style="cursor:zoom-in;" onclick="showImagePreview(\'' + imgData + '\')">'
+                + '<button class="remove-image" onclick="event.stopPropagation();removeImage(' + index + ')" title="移除此图片"><i class="fas fa-times"></i></button>'
+                + '<div class="img-num-badge">' + (index + 1) + '</div>';
+            imagePreviewList.appendChild(item);
+        });
+        if (uploadedImages.length === 0) {
+            uploadPlaceholder.style.display = 'block';
+            imagePreviewContainer.style.display = 'none';
+        }
+        var countEl = document.getElementById('imgCount');
+        if (countEl) countEl.textContent = uploadedImages.length + '/5';
+    }
+}
+
+window.removeImage = function(index) {
+    uploadedImages.splice(index, 1);
+    imageFiles.splice(index, 1);
+    var list        = document.getElementById('imagePreviewList');
+    var placeholder = document.getElementById('uploadPlaceholder');
+    var container   = document.getElementById('imagePreviewContainer');
+    if (uploadedImages.length === 0) {
+        placeholder.style.display = 'block';
+        container.style.display   = 'none';
+    } else {
+        list.innerHTML = '';
+        uploadedImages.forEach(function(d, idx) {
+            var item = document.createElement('div');
+            item.className = 'image-preview-item';
+            item.innerHTML = '<img src="' + d + '" alt="预览图 ' + (idx + 1) + '" style="cursor:zoom-in;" onclick="showImagePreview(\'' + d + '\')">'
+                + '<button class="remove-image" onclick="event.stopPropagation();removeImage(' + idx + ')" title="移除"><i class="fas fa-times"></i></button>'
+                + '<div class="img-num-badge">' + (idx + 1) + '</div>';
+            list.appendChild(item);
+        });
+    }
+    var countEl = document.getElementById('imgCount');
+    if (countEl) countEl.textContent = uploadedImages.length + '/5';
+};
+
+
+// ===================================================
+// 按钮状态（各卡片独立，互不影响）
+// ===================================================
+function disableButtons(mode) {
+    mode = mode || currentMode;
+    if (mode === 'llm') {
+        $('#btnSubmitLLM').prop('disabled', true).addClass('btn-disabled');
+    } else {
+        $('#btnSubmitMMR').prop('disabled', true).addClass('btn-disabled');
+    }
+}
+function enableButtons(mode) {
+    mode = mode || currentMode;
+    if (mode === 'llm') {
+        $('#btnSubmitLLM').prop('disabled', false).removeClass('btn-disabled');
+    } else {
+        $('#btnSubmitMMR').prop('disabled', false).removeClass('btn-disabled');
+    }
+    _hideAnalysisToast();
+}
+
+// ===================================================
+// showLoading / hideLoading
+// ===================================================
+function showLoading(message) {
+    message = message || '正在加载...';
+    if ($('#loadingOverlay').length) return;
+    $('body').append('<div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text">' + message + '</div></div>');
+}
+function hideLoading() {
+    $('#loadingOverlay').remove();
+}
+
+// ===================================================
+// 历史记录
+// ===================================================
+// ===================================================
+// 历史记录（data_excel 风格：表格+筛选+详情弹窗）
+// ===================================================
+var _histAllRecords = [];  // 缓存全部记录
+var _histFilter     = 'all';
+var _histPage       = 1;
+var _histTotal      = 0;
+var _histTotalPages = 1;
+var _histUserRole   = '';
+
+function loadHistory(page) {
+    _histPage = page || 1;
+    showLoading('正在加载历史记录...');
+    $.ajax({
+        url: '/get_detection_history',
+        type: 'GET',
+        data: { page: _histPage, per_page: 10 },
+        success: function(data) {
+            hideLoading();
+            if (!data.success) {
+                alert('加载历史记录失败：' + (data.message || '未知错误'));
+                return;
+            }
+            _histAllRecords = data.records || [];
+            _histTotal      = data.total      || 0;
+            _histTotalPages = data.total_pages || 1;
+            _histUserRole   = data.user_role  || '';
+            _renderHistoryModal();
+        },
+        error: function(xhr, status) {
+            hideLoading();
+            alert('加载历史记录失败，状态：' + status);
+        }
+    });
+}
+
+function _renderHistoryModal() {
+    // 移除旧弹窗
+    $('#historyOverlay, #historyModal').remove();
+
+    // 过滤数据
+    var filtered = _histAllRecords;
+    if (_histFilter === 'real') {
+        filtered = _histAllRecords.filter(function(r){ return r.detect_result === '真实新闻'; });
+    } else if (_histFilter === 'fake') {
+        filtered = _histAllRecords.filter(function(r){ return r.detect_result === '虚假新闻'; });
+    }
+
+    // 构建表格行
+    var tbodyHtml = '';
+    if (filtered.length === 0) {
+        tbodyHtml = '<tr><td colspan="6" class="hist-empty"><i class="fas fa-inbox"></i><br>暂无检测记录</td></tr>';
+    } else {
+        filtered.forEach(function(rec) {
+            var isReal  = rec.detect_result === '真实新闻';
+            var isFake  = rec.detect_result === '虚假新闻';
+            var bdgCls  = isReal ? 'hist-badge-real' : (isFake ? 'hist-badge-fake' : 'hist-badge-unk');
+            var rate    = parseFloat(rec.detect_resultrate || 0).toFixed(2);
+            var r       = rec.reasoning || {};
+            var detType = (r.detect_type === 'mmr') ? 'mmr' : (r.final_reason ? 'llm' : 'std');
+            var typeTag = detType === 'mmr'
+                ? '<span class="hist-type-tag hist-type-mmr"><i class="fas fa-photo-film"></i>图文</span>'
+                : (detType === 'llm'
+                    ? '<span class="hist-type-tag hist-type-llm"><i class="fas fa-brain"></i>LLM</span>'
+                    : '<span class="hist-type-tag hist-type-std"><i class="fas fa-robot"></i>标准</span>');
+
+            var showCb = (_histUserRole !== 'admin' && _histUserRole !== 'experts');
+            var alreadyDone = (rec.reexamine_status === '已检测');
+            tbodyHtml += '<tr>'
+                + '<td>'
+                + (showCb ? '<input type="checkbox" class="hist-reex-cb" data-id="' + rec.detect_id + '" '
+                    + (alreadyDone ? 'disabled title="已提交复审"' : '') + ' style="margin-right:6px;width:14px;height:14px;accent-color:#2563eb;vertical-align:middle;cursor:pointer;">' : '')
+                + '<span style="font-weight:600;color:#2563eb;">#' + escapeHtml(rec.detect_id) + '</span></td>'
+                + '<td><i class="far fa-clock" style="color:#8a9bb5;margin-right:5px;"></i>' + escapeHtml(rec.check_time) + '</td>'
+                + '<td><strong>' + escapeHtml(rec.title || '（无标题）') + '</strong>'
+                + '<div style="font-size:.78rem;color:#718096;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;">' + escapeHtml((rec.content || '').substring(0, 50)) + (rec.content && rec.content.length > 50 ? '...' : '') + '</div></td>'
+                + '<td><span class="hist-badge ' + bdgCls + '">' + escapeHtml(rec.detect_result || '未知') + '</span></td>'
+                + '<td><span class="hist-accuracy">' + rate + '%</span> &nbsp;' + typeTag + '</td>'
+                + '<td><button class="btn-hist-view" onclick="viewDetectionDetail(' + rec.detect_id + ')"><i class="fas fa-eye"></i> 详情</button></td>'
+                + '</tr>';
+        });
+    }
+
+    // 分页按钮
+    var paginationHtml = '';
+    if (_histTotalPages > 1) {
+        paginationHtml += '<div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:12px;">';
+        paginationHtml += '<button onclick="loadHistory(' + Math.max(1, _histPage-1) + ')" style="padding:5px 12px;border-radius:20px;border:1px solid #d0e0f5;background:#fff;cursor:pointer;' + (_histPage===1?'opacity:.4;':'') + '">&laquo;</button>';
+        var start = Math.max(1, _histPage-2);
+        var end   = Math.min(_histTotalPages, start+4);
+        for (var p = start; p <= end; p++) {
+            var active = (p === _histPage);
+            paginationHtml += '<button onclick="loadHistory(' + p + ')" style="width:32px;height:32px;border-radius:50%;border:' + (active?'none':'1.5px solid rgba(26,73,129,.25)') + ';background:' + (active?'#1A4981':'#fff') + ';color:' + (active?'#fff':'#1A4981') + ';font-weight:600;cursor:pointer;">' + p + '</button>';
+        }
+        paginationHtml += '<button onclick="loadHistory(' + Math.min(_histTotalPages, _histPage+1) + ')" style="padding:5px 12px;border-radius:20px;border:1px solid #d0e0f5;background:#fff;cursor:pointer;' + (_histPage===_histTotalPages?'opacity:.4;':'') + '">&raquo;</button>';
+        paginationHtml += '<span style="font-size:.82rem;color:#718096;">共 ' + _histTotal + ' 条 / 第 ' + _histPage + ' / ' + _histTotalPages + ' 页</span>';
+        paginationHtml += '</div>';
+    }
+
+    var modalHtml =
+        '<div class="modal-modern-overlay" id="historyOverlay"></div>'
+        + '<div class="modal-modern" id="historyModal">'
+        + '<div class="modal-modern-header">'
+        + '<h3><i class="fas fa-clock-rotate-left"></i>检测历史记录</h3>'
+        + '<span style="background:linear-gradient(145deg,#1A4981,#2563eb);color:#fff;padding:5px 16px;border-radius:50px;font-size:.88rem;font-weight:600;">共 ' + _histTotal + ' 条</span>'
+        + '</div>'
+        + '<div class="modal-modern-body">'
+        // 筛选 Tab
+        + (_histUserRole !== 'admin' && _histUserRole !== 'experts'
+            ? '<div style="display:flex;align-items:center;justify-content:space-between;'
+            + 'background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fde68a;'
+            + 'border-radius:14px;padding:10px 16px;margin-bottom:14px;">'
+            + '<span style="font-size:.88rem;color:#92400e;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>'
+            + '勾选记录后点击<b style="color:#d97706;">提交复审</b>，专家将对所选新闻进行人工复核</span>'
+            + '<button class="btn-modal" onclick="_submitReexamine()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:7px 18px;font-size:.88rem;white-space:nowrap;flex-shrink:0;margin-left:12px;">'
+            + '<i class="fas fa-clipboard-check"></i> 提交复审</button></div>'
+            : '')
+        + '<div class="hist-tab-group" style="display:inline-flex;margin-bottom:14px;">'
+        + '<button class="hist-tab-btn' + (_histFilter==='all'?' active':'') + '" onclick="_setHistFilter(\'all\')"><i class="fas fa-globe"></i> 全部</button>'
+        + '<button class="hist-tab-btn' + (_histFilter==='real'?' active':'') + '" onclick="_setHistFilter(\'real\')"><i class="fas fa-check-circle" style="color:#31b48d;"></i> 真实新闻</button>'
+        + '<button class="hist-tab-btn' + (_histFilter==='fake'?' active':'') + '" onclick="_setHistFilter(\'fake\')"><i class="fas fa-exclamation-circle" style="color:#f46b6b;"></i> 虚假新闻</button>'
+        + '</div>'
+        // 表格
+        + '<div class="hist-table-wrap">'
+        + '<table class="hist-table">'
+        + '<thead><tr>'
+        + '<th><i class="fas fa-hashtag"></i>ID</th>'
+        + '<th><i class="fas fa-calendar-alt"></i>检测时间</th>'
+        + '<th><i class="fas fa-heading"></i>新闻标题</th>'
+        + '<th><i class="fas fa-tag"></i>检测结果</th>'
+        + '<th><i class="fas fa-percent"></i>准确率 / 类型</th>'
+        + '<th><i class="fas fa-cog"></i>操作</th>'
+        + '</tr></thead>'
+        + '<tbody>' + tbodyHtml + '</tbody>'
+        + '</table></div>'
+        + paginationHtml
+        + '</div>'
+        + '<div class="modal-modern-footer" style="display:flex;align-items:center;justify-content:space-between;">'
+        + '<span></span>'  // footer 左侧空白（按钮已移到顶部）
+        + '<button class="btn-modal btn-modal-danger" onclick="closeHistoryModal()"><i class="fas fa-times"></i> 关闭</button>'
+        + '</div>'
+        + '</div>';
+
+    $('body').append(modalHtml);
+    $('#historyOverlay').click(function(){ closeHistoryModal(); });
+}
+
+function _setHistFilter(f) {
+    _histFilter = f;
+    _renderHistoryModal();
+}
+
+function closeHistoryModal() { $('#historyOverlay, #historyModal').remove(); }
+
+function _submitReexamine() {
+    var ids = [];
+    $('.hist-reex-cb:checked').each(function() {
+        ids.push($(this).data('id'));
+    });
+    if (ids.length === 0) {
+        alert('请先勾选要提交复审的新闻记录');
+        return;
+    }
+    $.ajax({
+        url: '/user/submit_reexamine',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ detect_ids: ids }),
+        success: function(data) {
+            if (data.success) {
+                alert('复审提交成功！共提交 ' + ids.length + ' 条记录');
+                closeHistoryModal();
+                loadHistory(_histPage);   // 刷新列表
+            } else {
+                alert('提交失败：' + (data.message || '未知错误'));
+            }
+        },
+        error: function(xhr, status, err) {
+            alert('提交复审失败：' + err);
+        }
+    });
+}
+
+// ── 查看详情 ─────────────────────────────────────────────────
+function viewDetectionDetail(detectId) {
+    showLoading('正在加载详情...');
+    $.ajax({
+        url: '/get_detection_detail/' + detectId,
+        type: 'GET',
+        success: function(response) {
+            hideLoading();
+            if (response.success) { _showDetailModal(response.detail); }
+            else { alert('加载详情失败：' + (response.message || '')); }
+        },
+        error: function() { hideLoading(); alert('网络错误，请稍后重试'); }
+    });
+}
+
+// ── 详情弹窗（data_excel 风格）────────────────────────────────
+function _showDetailModal(d) {
+    $('#detailModalBg').remove();
+
+    var rate    = parseFloat(d.detect_resultrate || 0).toFixed(2);
+    var isReal  = d.detect_result === '真实新闻';
+    var isFake  = d.detect_result === '虚假新闻';
+    var bdgCls  = isReal ? 'hist-badge-real' : (isFake ? 'hist-badge-fake' : 'hist-badge-unk');
+    var vcls    = isReal ? 'verdict-real'    : (isFake ? 'verdict-fake'     : 'verdict-unk');
+    var icon    = isReal ? 'fa-check-circle' : (isFake ? 'fa-exclamation-triangle' : 'fa-question-circle');
+
+    // 图片展示
+    var imgHtml = '';
+    if (d.has_image && d.image_urls && d.image_urls.length) {
+        imgHtml = '<div class="detail-row"><div class="detail-lbl"><i class="fas fa-image"></i>配图</div>'
+            + '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+        d.image_urls.forEach(function(url) {
+            imgHtml += '<img src="' + escapeHtml(url) + '" onclick="window.open(this.src)" style="max-width:160px;max-height:110px;border-radius:12px;cursor:zoom-in;border:1px solid #d0e0f5;object-fit:cover;">';
+        });
+        imgHtml += '</div></div>';
+    }
+
+    // reasoning 展示
+    var r = d.reasoning || {};
+    var reasonHtml = '';
+    if (r && Object.keys(r).length > 0 && !r.raw) {
+        if (r.detect_type === 'mmr') {
+            // MMR 三维度
+            reasonHtml = '<div class="detail-reasoning">'
+                + '<div class="detail-reasoning-title"><i class="fas fa-photo-film" style="color:#7c3aed;"></i> 图文多模态分析</div>';
+            if (r.text_check)        reasonHtml += '<p style="margin:0 0 6px;font-size:.87rem;"><b>文本核查：</b>' + escapeHtml(r.text_check) + '</p>';
+            if (r.image_check)       reasonHtml += '<p style="margin:0 0 6px;font-size:.87rem;"><b>图像检测：</b>' + escapeHtml(r.image_check) + '</p>';
+            if (r.consistency_check) reasonHtml += '<p style="margin:0;font-size:.87rem;"><b>图文一致性：</b>' + escapeHtml(r.consistency_check) + '</p>';
+            reasonHtml += '</div>';
+        } else if (r.final_reason) {
+            // LLM 分析
+            reasonHtml = '<div class="detail-reasoning">'
+                + '<div class="detail-reasoning-title"><i class="fas fa-brain" style="color:#2563eb;"></i> LLM 深度分析</div>'
+                + '<p style="margin:0;font-size:.87rem;line-height:1.7;">' + escapeHtml(r.final_reason) + '</p>'
+                + '</div>';
+        }
+    } else if (r && r.raw) {
+        reasonHtml = '<div class="detail-reasoning"><p style="margin:0;font-size:.87rem;">' + escapeHtml(r.raw) + '</p></div>';
+    }
+
+    var html =
+        '<div class="detail-modal-bg open" id="detailModalBg">'
+        + '<div class="detail-modal-box">'
+        + '<button class="detail-modal-close" onclick="$(\'#detailModalBg\').remove()">&times;</button>'
+        + '<h3><i class="fas fa-newspaper"></i>新闻详情</h3>'
+        + '<div class="detail-card-wrap">'
+        + '<div class="detail-row"><div class="detail-lbl"><i class="fas fa-hashtag"></i>检测 ID</div>'
+        + '<div class="detail-val">#' + escapeHtml(d.detect_id) + '&emsp;<span style="font-size:.82rem;color:#718096;">' + escapeHtml(d.check_time) + '</span></div></div>'
+        + '<div class="detail-row"><div class="detail-lbl"><i class="fas fa-heading"></i>新闻标题</div>'
+        + '<div class="detail-val"><strong>' + escapeHtml(d.title || '（无标题）') + '</strong></div></div>'
+        + '<div class="detail-row"><div class="detail-lbl"><i class="fas fa-file-alt"></i>正文内容</div>'
+        + '<div class="detail-val scrollable">' + escapeHtml(d.content || '') + '</div></div>'
+        + imgHtml
+        + '<div class="detail-row"><div class="detail-lbl"><i class="fas fa-tag"></i>检测结果</div>'
+        + '<div class="detail-val"><span class="verdict-pill ' + vcls + '"><i class="fas ' + icon + '" style="margin-right:6px;"></i>' + escapeHtml(d.detect_result || '未知') + '</span>'
+        + '&emsp;<span style="font-size:1.1rem;font-weight:700;color:#2563eb;">' + rate + '%</span></div></div>'
+        + reasonHtml
+        + '</div>'
+        + '<div style="text-align:right;"><button class="btn-modal btn-modal-danger" onclick="$(\'#detailModalBg\').remove()"><i class="fas fa-check"></i> 关闭</button></div>'
+        + '</div></div>';
+
+    $('body').append(html);
+    // 点击背景关闭
+    $('#detailModalBg').click(function(e) { if (e.target === this) { $(this).remove(); } });
+}
+
+// ── 工具 ─────────────────────────────────────────────────────
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    var d = document.createElement('div');
+    d.textContent = String(text);
+    return d.innerHTML;
+}
+</script>
+{% endblock %}
