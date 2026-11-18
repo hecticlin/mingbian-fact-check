@@ -1,0 +1,10 @@
+# Dependencies used by app.py for a local review on Windows or Linux.
+# Production uWSGI is listed separately in the original requirements.txt.
+Flask==2.3.3
+Flask-Mail==0.10.0
+PyMySQL==1.1.1
+DBUtils==3.1.0
+requests==2.32.5
+openai==1.12.0
+httpx==0.27.2
+Pillow==11.3.0
